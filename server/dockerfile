@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+ENV NODE_ENV=development
+
+COPY package*.json ./
+
+RUN npm install
+
+COPY . .
+
+RUN npx tsc
+
+EXPOSE 8080
+
+
+CMD [ "npm", "run", "start:api" ]

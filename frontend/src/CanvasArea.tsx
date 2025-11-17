@@ -8,7 +8,6 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import * as Y from "yjs";
 import { useAuth } from '@/contexts/AuthContext';
 import { jwtDecode } from 'jwt-decode';
-// FIX: Assuming the Cursor component is now in its correct place
 import { Cursor } from "@/components/ui/cursor";
 
 // --- TYPE DEFINITIONS ---
@@ -30,6 +29,8 @@ interface CursorData {
 interface CanvasAreaProps {
   tool: Tool;
   boardId: string;
+  // Assuming you still have the prop from the previous step, if not, remove this line
+  onActiveUsersChange?: (users: any[]) => void;
 }
 // --- END TYPE DEFINITIONS ---
 
@@ -56,7 +57,6 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
   const { token } = useAuth();
   const [isDrawing, setIsDrawing] = useState(false);
 
-  // FIX: This holds the live Provider instance
   const providerRef = useRef<HocuspocusProvider | null>(null);
   const [yjsShapesMap, setYjsShapesMap] = useState<Y.Map<SyncedShape> | null>(null);
 
@@ -65,17 +65,31 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
   const [cursors, setCursors] = useState(new Map<number, CursorData>());
 
   const [smoothCursors, setSmoothCursors] = useState(new Map<number, CursorData>());
+
+  // --- 1. NEW: State for Ghost Lines ---
+  const [remoteLines, setRemoteLines] = useState(new Map<number, number[]>());
+  // -------------------------------------
+
   const animationRef = useRef(0);
-  const smoothingFactor = 0.2; // 20% glide speed
+  const smoothingFactor = 0.2;
 
   const userEmail = token ? (jwtDecode(token) as { email: string }).email : 'Guest';
   const userColor = useRef(getRandomColor());
 
-  // FIX: Create a stable throttled function that uses the *current* ref value
+  // --- 2. UPDATE: Throttler now accepts points ---
   const throttledSetAwareness = useRef(
-    throttle((x: number | null, y: number | null) => {
-      // Use the current value of the provider ref, which is updated in useEffect
-      providerRef.current?.setAwarenessField('cursor', { x, y });
+    throttle((x: number | null, y: number | null, points: number[] | null) => {
+      // Send Cursor
+      if (x !== null && y !== null) {
+        providerRef.current?.setAwarenessField('cursor', { x, y });
+      }
+      // Send Drawing (Ghost Line)
+      if (points) {
+        providerRef.current?.setAwarenessField('drawing', points);
+      } else {
+        // If null, clear the drawing field
+        providerRef.current?.setAwarenessField('drawing', null);
+      }
     }, 30)
   ).current;
 
@@ -89,19 +103,16 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
           const prevSmooth = prev.get(id);
 
           if (!prevSmooth) {
-            // First time seeing this cursor → jump directly to position
             updated.set(id, raw);
             return;
           }
 
-          // Linear interpolation for smooth motion
           const sx = prevSmooth.x + (raw.x - prevSmooth.x) * smoothingFactor;
           const sy = prevSmooth.y + (raw.y - prevSmooth.y) * smoothingFactor;
 
           updated.set(id, { ...raw, x: sx, y: sy });
         });
 
-        // Remove cursors that disappeared
         prev.forEach((_, id) => {
           if (!cursors.has(id)) {
             updated.delete(id);
@@ -119,7 +130,6 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
   }, [cursors, smoothingFactor]);
 
 
-  // --- LIFECYCLE AND CONNECTION ---
   useEffect(() => {
     const ydoc = new Y.Doc();
     const yMap = ydoc.getMap<SyncedShape>("shapes");
@@ -131,14 +141,12 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
       token: token || undefined,
     });
 
-    // SET AWARENESS STATE FOR CURRENT USER
     provider.setAwarenessField('user', {
       name: userEmail,
       color: userColor.current,
     });
 
-    // Update state and ref
-    providerRef.current = provider; // FIX: Crucially update the ref here
+    providerRef.current = provider;
     setYjsShapesMap(yMap);
 
     const onSync = () => {
@@ -148,34 +156,41 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
 
     const onAwarenessUpdate = () => {
       const newCursors = new Map<number, CursorData>();
+      const newRemoteLines = new Map<number, number[]>(); // --- 3. NEW MAP ---
+
       const states = provider.awareness.getStates();
 
       states.forEach((state, clientID) => {
-        if (clientID !== provider.awareness.clientID && state.user && state.cursor) {
-          newCursors.set(clientID, {
-            x: state.cursor.x,
-            y: state.cursor.y,
-            name: state.user.name,
-            color: state.user.color,
-          });
+        if (clientID !== provider.awareness.clientID && state.user) {
+          // Handle Cursors
+          if (state.cursor && state.cursor.x !== null && state.cursor.y !== null) {
+            newCursors.set(clientID, {
+              x: state.cursor.x,
+              y: state.cursor.y,
+              name: state.user.name,
+              color: state.user.color,
+            });
+          }
+          // --- 4. NEW: Handle Ghost Lines ---
+          if (state.drawing && state.drawing.length > 0) {
+            newRemoteLines.set(clientID, state.drawing);
+          }
         }
       });
+
       setCursors(newCursors);
+      setRemoteLines(newRemoteLines); // --- 5. NEW: Update State ---
     };
     provider.on('awarenessUpdate', onAwarenessUpdate);
 
     return () => {
-      // CLEANUP
       provider.destroy();
       yMap.unobserve(onSync);
-      // Clear the ref
       providerRef.current = null;
     };
   }, [boardId, token, userEmail]);
-  // --- END LIFECYCLE ---
 
 
-  // --- HANDLERS (Drawing Logic) ---
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (tool !== "pencil" || e.target !== e.target.getStage() || !yjsShapesMap) {
       return;
@@ -207,31 +222,34 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
     };
     yjsShapesMap.set(uniqueId, newLine);
     setCurrentLine([]);
+
+    // --- 6. NEW: Clear ghost line on mouse up ---
+    throttledSetAwareness(null, null, null);
   }, [isDrawing, tool, currentLine, yjsShapesMap]);
-  // --- END DRAWING LOGIC ---
 
 
-  // --- COMBINED STAGE HANDLERS (Cursor + Drawing) ---
+  // --- COMBINED STAGE HANDLERS ---
   const handleStageMouseMove = (e: KonvaEventObject<MouseEvent>) => {
-    // 1. Send Awareness update
     const stage = e.target.getStage();
     if (stage) {
       const pos = stage.getPointerPosition();
       if (pos) {
-        throttledSetAwareness(pos.x, pos.y);
+        // --- 7. UPDATE: Send Cursor AND Drawing Data ---
+        throttledSetAwareness(
+          pos.x,
+          pos.y,
+          isDrawing ? currentLine.concat([pos.x, pos.y]) : null
+        );
       }
     }
-    // 2. Call the drawing function
     handleMouseMove(e);
   };
 
   const handleStageMouseLeave = (e: KonvaEventObject<MouseEvent>) => {
-    // 1. Run MouseUp/Drawing Cleanup
     handleMouseUp();
-    // 2. Hide Cursor
-    throttledSetAwareness(null, null);
+    // --- 8. UPDATE: Clear everything ---
+    throttledSetAwareness(null, null, null);
   };
-  // --- END COMBINED HANDLERS ---
 
   const cursorStyle = tool === "pencil" ? "crosshair" : "default";
 
@@ -249,6 +267,7 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
         onMouseLeave={handleStageMouseLeave}
       >
         <Layer>
+          {/* Synced Shapes */}
           {syncedShapes.map((shape) => {
             if (shape.type === "line") {
               return (
@@ -266,7 +285,21 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
             return null;
           })}
 
-          {/* Render the "in-progress" line */}
+          {/* --- 9. NEW: Render Remote Ghost Lines --- */}
+          {Array.from(remoteLines.entries()).map(([clientID, points]) => (
+            <Line
+              key={`ghost-${clientID}`}
+              points={points}
+              stroke="#888"
+              strokeWidth={2}
+              tension={0.5}
+              lineCap="round"
+              lineJoin="round"
+              opacity={0.5}
+            />
+          ))}
+
+          {/* Local Line */}
           <Line
             points={currentLine}
             stroke="black"
@@ -276,9 +309,8 @@ export function CanvasArea({ tool, boardId }: CanvasAreaProps) {
             lineJoin="round"
           />
 
-          {/* Render all other users' cursors */}
+          {/* Smooth Cursors */}
           {Array.from(smoothCursors.entries()).map(([clientID, cursor]) => (
-            // Only render if the cursor coordinates are defined (not null)
             cursor.x !== null && cursor.y !== null && (
               <Cursor
                 key={clientID}

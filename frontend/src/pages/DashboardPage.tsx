@@ -13,6 +13,7 @@ interface Board {
     name: string;
     owner_id: string | null;
     is_public: boolean;
+    owner_email: string;
 }
 
 interface UserPayload {
@@ -192,7 +193,7 @@ export function DashboardPage() {
                             >
                                 <p className="font-medium truncate">{board.name}</p>
                                 <p className="text-sm text-gray-500">
-                                    Owner: {board.owner_id === userId ? 'You' : 'Other'}
+                                    Owner: {board.owner_id === userId ? 'You' : board.owner_email}
                                 </p>
                                 <p className="text-sm text-gray-500">
                                     {/* 7. Show public/private status */}

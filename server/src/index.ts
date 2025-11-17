@@ -133,15 +133,21 @@ server.after(() => {
         }
         const userId = userPayload.id;
 
-        // Query the DB: get all boards the user owns OR has permission to
         const { rows } = await pgPool.query(
             `
-        SELECT DISTINCT b.id, b.name, b.owner_id, b.is_public, b.created_at  -- <--- FIX IS HERE
-        FROM boards b
-        LEFT JOIN board_permissions bp ON b.id = bp.board_id
-        WHERE b.owner_id = $1 OR bp.user_id = $1 OR b.is_public = TRUE
-        ORDER BY b.created_at DESC
-        `,
+            SELECT DISTINCT 
+                b.id, 
+                b.name, 
+                b.owner_id, 
+                b.is_public, 
+                b.created_at,
+                u.email AS owner_email
+            FROM boards b
+            LEFT JOIN board_permissions bp ON b.id = bp.board_id
+            LEFT JOIN users u ON b.owner_id = u.id
+            WHERE b.owner_id = $1 OR bp.user_id = $1 OR b.is_public = TRUE
+            ORDER BY b.created_at DESC
+            `,
             [userId]
         );
         return rows;
@@ -203,6 +209,29 @@ server.after(() => {
         if (rowCount === 0) {
             // This now correctly blocks guests from private boards
             return reply.status(404).send({ error: 'Board not found or access denied' });
+        }
+
+        return reply.send(rows[0]);
+    });
+
+    //Rename a board
+    server.patch('/api/boards/:id', { preHandler: [verifyJWT] }, async (request, reply) => {
+        const userPayload = request.user as UserPayload;
+        const { id } = request.params as { id: string };
+        const { name } = request.body as { name: string };
+
+        if (!name || name.trim() === "") {
+            return reply.status(400).send({ error: "Name cannot be empty." });
+        }
+
+        // Only the OWNER can rename the board
+        const { rows, rowCount } = await pgPool.query(
+            'UPDATE boards SET name = $1 WHERE id = $2 AND owner_id = $3 RETURNING id, name',
+            [name, id, userPayload.id]
+        );
+
+        if (rowCount === 0) {
+            return reply.status(403).send({ error: "Board not found or you are not the owner." });
         }
 
         return reply.send(rows[0]);

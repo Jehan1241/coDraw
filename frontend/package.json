@@ -28,6 +28,7 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.17",
+    "y-indexeddb": "^9.0.12",
     "yjs": "^13.6.27"
   },
   "devDependencies": {

@@ -38,9 +38,11 @@ export function BoardPage() {
                 <Sidebar tool={tool} setTool={setTool} />
 
                 <main className="w-full h-full">
-                    <div className="w-full h-full pt-14 pl-0 md:pl-16">
-                        {/* CanvasArea now works because it's inside BoardProvider */}
-                        <CanvasArea tool={tool} boardId={boardId} />
+                    <div className="w-full h-full pt-14">
+                        <CanvasArea
+                            tool={tool}
+                            boardId={boardId}
+                        />
                     </div>
                 </main>
             </div>

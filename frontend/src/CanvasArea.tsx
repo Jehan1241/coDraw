@@ -1,5 +1,3 @@
-// src/components/CanvasArea.tsx
-
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
@@ -8,11 +6,9 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { Cursor } from "@/components/ui/cursor";
-// 1. FIX: Use the UserContext
 import { useUser } from "@/contexts/UserContext";
 import { BoardStorage } from "./utils/boardStorage";
 
-// --- TYPE DEFINITIONS ---
 type LineData = number[];
 
 type SyncedShape = {
@@ -39,9 +35,7 @@ interface CanvasAreaProps {
   boardId: string;
   onActiveUsersChange?: (users: ActiveUser[]) => void;
 }
-// --- END TYPE DEFINITIONS ---
 
-// --- UTILITY FUNCTIONS ---
 function throttle(fn: (...args: any[]) => void, delay: number) {
   let timer: number | null = null;
   return (...args: any[]) => {
@@ -53,10 +47,9 @@ function throttle(fn: (...args: any[]) => void, delay: number) {
     }
   };
 }
-// ---
 
 export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaProps) {
-  // 2. FIX: Get user from context
+
   const { user } = useUser();
   const [isDrawing, setIsDrawing] = useState(false);
   const stageRef = useRef<any>(null);
@@ -290,7 +283,6 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
   };
 
   const handleStageMouseLeave = (e: KonvaEventObject<MouseEvent>) => {
-    handleMouseUp();
     throttledSetAwareness(null, null, null);
   };
 
@@ -319,6 +311,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
       className="w-full h-full bg-gray-200"
       style={{ cursor: cursorStyle }}
     >
+
       <Stage
         ref={stageRef}
         width={stageSize.width}

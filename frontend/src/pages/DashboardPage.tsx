@@ -9,15 +9,18 @@ export function DashboardPage() {
     const navigate = useNavigate();
     const [boards, setBoards] = useState<BoardMeta[]>([]);
 
-    // Load boards on mount
     useEffect(() => {
-        setBoards(BoardStorage.getAll());
-    }, []);
+        const storedBoards = BoardStorage.getAll();
+        if (storedBoards.length === 0) {
+            const newId = crypto.randomUUID();
+            navigate(`/board/${newId}`, { replace: true });
+            return;
+        }
+        setBoards(storedBoards);
+    }, [navigate]);
 
     const createNewBoard = () => {
         const newId = crypto.randomUUID();
-        // We don't add it to storage here; 
-        // we let the BoardPage add it when we visit, to keep logic in one place.
         navigate(`/board/${newId}`);
     };
 

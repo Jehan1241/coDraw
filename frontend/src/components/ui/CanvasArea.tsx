@@ -7,7 +7,7 @@ import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { Cursor } from "@/components/ui/cursor";
 import { useUser } from "@/contexts/UserContext";
-import { BoardStorage } from "./utils/boardStorage";
+import { BoardStorage } from "../../utils/boardStorage";
 
 type LineData = number[];
 
@@ -282,7 +282,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
     handleMouseMove(e);
   };
 
-  const handleStageMouseLeave = (e: KonvaEventObject<MouseEvent>) => {
+  const handleStageMouseLeave = (_: KonvaEventObject<MouseEvent>) => {
     throttledSetAwareness(null, null, null);
   };
 

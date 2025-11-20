@@ -1,13 +1,16 @@
 // src/components/CanvasArea.tsx
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Stage, Layer, Line, Path, Text } from "react-konva";
+import { Stage, Layer, Line } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Tool } from "@/pages/BoardPage";
 import { HocuspocusProvider } from "@hocuspocus/provider";
-import { IndexeddbPersistence } from "y-indexeddb"; // Local storage
+import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import { Cursor } from "@/components/ui/cursor";
+// 1. FIX: Use the UserContext
+import { useUser } from "@/contexts/UserContext";
+import { BoardStorage } from "./utils/boardStorage";
 
 // --- TYPE DEFINITIONS ---
 type LineData = number[];
@@ -50,33 +53,44 @@ function throttle(fn: (...args: any[]) => void, delay: number) {
     }
   };
 }
-
-function getRandomColor() {
-  const colors = ['#EC5E41', '#F29F05', '#F2CB05', '#04BF9D', '#038C7F'];
-  return colors[Math.floor(Math.random() * colors.length)];
-}
 // ---
 
 export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaProps) {
+  // 2. FIX: Get user from context
+  const { user } = useUser();
   const [isDrawing, setIsDrawing] = useState(false);
-
-  // 1. ANONYMOUS IDENTITY: Generate random name/color
-  const [myColor] = useState(getRandomColor());
-  const [myName] = useState(`Guest ${Math.floor(Math.random() * 1000)}`);
+  const stageRef = useRef<any>(null);
 
   const providerRef = useRef<HocuspocusProvider | null>(null);
   const [yjsShapesMap, setYjsShapesMap] = useState<Y.Map<SyncedShape> | null>(null);
 
   const [syncedShapes, setSyncedShapes] = useState<SyncedShape[]>([]);
   const [currentLine, setCurrentLine] = useState<LineData>([]);
+  const [cursors, setCursors] = useState(new Map<number, CursorData>());
 
-  // Cursor State
-  const cursorsRef = useRef(new Map<number, CursorData>());
   const [smoothCursors, setSmoothCursors] = useState(new Map<number, CursorData>());
   const [remoteLines, setRemoteLines] = useState(new Map<number, number[]>());
 
   const animationRef = useRef(0);
   const smoothingFactor = 0.2;
+
+  // 3. FIX: Keep a ref to the current user so the throttler can read the LATEST name
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  const saveThumbnail = useCallback(() => {
+    if (!stageRef.current) return;
+
+    // Export as a small, low-quality image to save space in localStorage
+    const dataURL = stageRef.current.toDataURL({
+      pixelRatio: 0.2, // Keep this low to save localStorage space
+      mimeType: "image/png", // <--- FIX: PNG supports transparency
+    });
+
+    BoardStorage.update(boardId, { thumbnail: dataURL });
+  }, [boardId]);
 
   const throttledSetAwareness = useRef(
     throttle((x: number | null, y: number | null, points: number[] | null) => {
@@ -86,10 +100,10 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
       else payload.drawing = null;
 
       if (Object.keys(payload).length > 0) {
-        // 2. UPDATE: Use local random identity
+        // 4. FIX: Use userRef.current to get the live name/color
         providerRef.current?.setAwarenessField('user', {
-          name: myName,
-          color: myColor,
+          name: userRef.current.name,
+          color: userRef.current.color,
           ...payload
         });
       }
@@ -97,29 +111,77 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
   ).current;
 
 
+  // 5. FIX: New Effect to update identity immediately when name changes
+  useEffect(() => {
+    if (providerRef.current) {
+      // Preserve existing cursor/drawing, just update identity
+      const current = providerRef.current.awareness.getLocalState();
+      providerRef.current.setAwarenessField('user', {
+        ...current?.user,
+        name: user.name,
+        color: user.color,
+      });
+    }
+  }, [user]);
+
+
+  useEffect(() => {
+    function animate() {
+      setSmoothCursors((prev) => {
+        const updated = new Map(prev);
+        const currentCursors = cursors; // Read from state closure
+
+        currentCursors.forEach((raw, id) => {
+          const prevSmooth = prev.get(id);
+
+          if (!prevSmooth) {
+            updated.set(id, raw);
+            return;
+          }
+
+          const sx = prevSmooth.x + (raw.x - prevSmooth.x) * smoothingFactor;
+          const sy = prevSmooth.y + (raw.y - prevSmooth.y) * smoothingFactor;
+
+          updated.set(id, { ...raw, x: sx, y: sy });
+        });
+
+        prev.forEach((_, id) => {
+          if (!currentCursors.has(id)) {
+            updated.delete(id);
+          }
+        });
+
+        return updated;
+      });
+
+      animationRef.current = requestAnimationFrame(animate);
+    }
+
+    animationRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [cursors, smoothingFactor]);
+
+
   // --- LIFECYCLE AND CONNECTION ---
   useEffect(() => {
     const ydoc = new Y.Doc();
     const yMap = ydoc.getMap<SyncedShape>("shapes");
 
-    // 3. NEW: CONNECT LOCAL PERSISTENCE (Browser Storage)
     const localProvider = new IndexeddbPersistence(boardId, ydoc);
-
     localProvider.on('synced', () => {
       setSyncedShapes(Array.from(yMap.values()));
     });
 
-    // 4. CONNECT NETWORK (No Token)
     const provider = new HocuspocusProvider({
       url: "ws://localhost:1234",
       name: boardId,
       document: ydoc,
-      // No token needed
     });
 
+    // 6. FIX: Use userRef for initial setup
     provider.setAwarenessField('user', {
-      name: myName,
-      color: myColor,
+      name: userRef.current.name,
+      color: userRef.current.color,
     });
 
     providerRef.current = provider;
@@ -159,71 +221,22 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
         }
       });
 
-      cursorsRef.current = newCursors;
+      setCursors(newCursors);
       setRemoteLines(newRemoteLines);
       if (onActiveUsersChange) onActiveUsersChange(activeUsersList);
     };
     provider.on('awarenessUpdate', onAwarenessUpdate);
 
-    // Animation Loop
-    const smoothUpdate = () => {
-      setSmoothCursors((prev) => {
-        const updated = new Map(prev);
-        let changed = false;
-
-        // FIX: Iterate over cursorsRef.current, NOT cursors state
-        cursorsRef.current.forEach((raw, id) => {
-          const prevSmooth = prev.get(id);
-
-          if (!prevSmooth) {
-            updated.set(id, raw);
-            changed = true; // Mark as changed
-            return;
-          }
-
-          const sx = prevSmooth.x + (raw.x - prevSmooth.x) * smoothingFactor;
-          const sy = prevSmooth.y + (raw.y - prevSmooth.y) * smoothingFactor;
-
-          // Only update if there is significant movement
-          if (Math.abs(raw.x - sx) > 0.1 || Math.abs(raw.y - sy) > 0.1) {
-            updated.set(id, { ...raw, x: sx, y: sy });
-            changed = true;
-          } else if (prevSmooth.x !== raw.x) {
-            updated.set(id, raw); // Snap
-            changed = true;
-          }
-        });
-
-        // Remove cursors that disappeared
-        prev.forEach((_, id) => {
-          // FIX: Check against cursorsRef.current
-          if (!cursorsRef.current.has(id)) {
-            updated.delete(id);
-            changed = true;
-          }
-        });
-
-        // Optimization: Return the old object if nothing changed to prevent re-render
-        return changed ? updated : prev;
-      });
-
-      animationRef.current = requestAnimationFrame(smoothUpdate);
-    };
-
-    animationRef.current = requestAnimationFrame(smoothUpdate);
-
     return () => {
-      cancelAnimationFrame(animationRef.current);
       provider.destroy();
-      localProvider.destroy(); // 5. CLEANUP LOCAL
       yMap.unobserve(onSync);
       providerRef.current = null;
     };
-  }, [boardId, myName, myColor]); // Removed auth dependencies
+  }, [boardId, onActiveUsersChange]); // 7. FIX: Removed user dependencies to prevent reconnect
   // --- END LIFECYCLE ---
 
 
-  // --- (All your drawing handlers are exactly the same) ---
+  // --- HANDLERS (Drawing Logic) ---
   const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
     if (tool !== "pencil" || e.target !== e.target.getStage() || !yjsShapesMap) {
       return;
@@ -256,7 +269,8 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
     yjsShapesMap.set(uniqueId, newLine);
     setCurrentLine([]);
     throttledSetAwareness(null, null, null);
-  }, [isDrawing, tool, currentLine, yjsShapesMap]);
+    saveThumbnail();
+  }, [isDrawing, tool, currentLine, yjsShapesMap, saveThumbnail]);
 
 
   // --- COMBINED STAGE HANDLERS ---
@@ -306,6 +320,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
       style={{ cursor: cursorStyle }}
     >
       <Stage
+        ref={stageRef}
         width={stageSize.width}
         height={stageSize.height}
         onMouseDown={handleMouseDown}
@@ -314,6 +329,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
         onMouseLeave={handleStageMouseLeave}
       >
         <Layer>
+          {/* Synced Shapes */}
           {syncedShapes.map((shape) => {
             if (shape.type === "line") {
               return (
@@ -331,7 +347,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
             return null;
           })}
 
-          {/* Render Remote Ghost Lines */}
+          {/* Remote Ghost Lines */}
           {Array.from(remoteLines.entries()).map(([clientID, points]) => (
             <Line
               key={`ghost-${clientID}`}
@@ -345,7 +361,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
             />
           ))}
 
-          {/* Render Local Line */}
+          {/* Local Line */}
           <Line
             points={currentLine}
             stroke="black"
@@ -355,7 +371,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
             lineJoin="round"
           />
 
-          {/* Render Smooth Cursors */}
+          {/* Smooth Cursors */}
           {Array.from(smoothCursors.entries()).map(([clientID, cursor]) => (
             <Cursor
               key={clientID}

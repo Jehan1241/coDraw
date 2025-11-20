@@ -1,10 +1,12 @@
 // src/pages/BoardPage.tsx
+
 import { useParams, useNavigate } from 'react-router-dom';
 import { BoardHeader } from '@/components/ui/BoardHeader';
 import { Sidebar } from '@/Sidebar';
 import { CanvasArea } from '@/CanvasArea';
-import { useState } from 'react';
-// Removed useAuth, jwtDecode
+import { useState, useEffect } from 'react';
+import { BoardProvider } from '@/contexts/BoardContext'; // 1. Import the Provider
+import { BoardStorage } from "@/utils/boardStorage";
 
 export type Tool = "select" | "pencil" | "rectangle";
 
@@ -13,8 +15,12 @@ export function BoardPage() {
     const { boardId } = useParams();
     const navigate = useNavigate();
 
-    // In local-first mode, we don't fetch board metadata. 
-    // The board exists simply because you visited the URL.
+    // Auto-Register Board in History
+    useEffect(() => {
+        if (boardId) {
+            BoardStorage.update(boardId, {});
+        }
+    }, [boardId]);
 
     if (!boardId) {
         navigate('/');
@@ -22,23 +28,22 @@ export function BoardPage() {
     }
 
     return (
-        <div className="w-full h-screen bg-gray-50 overflow-hidden">
-            <BoardHeader
-                boardId={boardId}
-            />
+        // 2. WRAP EVERYTHING IN THE PROVIDER
+        <BoardProvider boardId={boardId}>
+            <div className="w-full h-screen bg-gray-50 overflow-hidden">
 
-            <Sidebar tool={tool} setTool={setTool} />
+                {/* Header now works because it's inside BoardProvider */}
+                <BoardHeader />
 
-            <main className="w-full h-full">
-                <div className="w-full h-full pt-14 pl-0 md:pl-16">
-                    <CanvasArea
-                        tool={tool}
-                        boardId={boardId}
-                    // We removed the onActiveUsersChange prop in the last step to simplify, 
-                    // but if you kept it in CanvasArea, pass the handler here.
-                    />
-                </div>
-            </main>
-        </div>
+                <Sidebar tool={tool} setTool={setTool} />
+
+                <main className="w-full h-full">
+                    <div className="w-full h-full pt-14 pl-0 md:pl-16">
+                        {/* CanvasArea now works because it's inside BoardProvider */}
+                        <CanvasArea tool={tool} boardId={boardId} />
+                    </div>
+                </main>
+            </div>
+        </BoardProvider>
     );
 }

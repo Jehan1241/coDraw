@@ -28,17 +28,14 @@ export const BoardStorage = {
         const index = list.findIndex((b) => b.id === id);
 
         if (index === -1) {
-            // Create new entry
             list.push({
                 id,
                 name: updates.name || "Untitled Board",
                 lastVisited: Date.now(),
             });
         } else {
-            // Update existing
             list[index] = { ...list[index], ...updates, lastVisited: Date.now() };
         }
-
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     },
 

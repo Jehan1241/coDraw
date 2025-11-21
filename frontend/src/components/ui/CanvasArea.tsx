@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import type { KonvaEventObject } from "konva/lib/Node";
 import type { Tool } from "@/pages/BoardPage";
@@ -69,21 +69,21 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
 
   // 3. FIX: Keep a ref to the current user so the throttler can read the LATEST name
   const userRef = useRef(user);
+
+  //Forces username to update immediately
   useEffect(() => {
     userRef.current = user;
   }, [user]);
 
-  const saveThumbnail = useCallback(() => {
+  const saveThumbnail = () => {
     if (!stageRef.current) return;
-
-    // Export as a small, low-quality image to save space in localStorage
     const dataURL = stageRef.current.toDataURL({
-      pixelRatio: 0.2, // Keep this low to save localStorage space
-      mimeType: "image/png", // <--- FIX: PNG supports transparency
+      pixelRatio: 0.2,
+      mimeType: "image/png",
     });
 
     BoardStorage.update(boardId, { thumbnail: dataURL });
-  }, [boardId]);
+  };
 
   const throttledSetAwareness = useRef(
     throttle((x: number | null, y: number | null, points: number[] | null) => {
@@ -93,7 +93,6 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
       else payload.drawing = null;
 
       if (Object.keys(payload).length > 0) {
-        // 4. FIX: Use userRef.current to get the live name/color
         providerRef.current?.setAwarenessField('user', {
           name: userRef.current.name,
           color: userRef.current.color,
@@ -102,21 +101,6 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
       }
     }, 30)
   ).current;
-
-
-  // 5. FIX: New Effect to update identity immediately when name changes
-  useEffect(() => {
-    if (providerRef.current) {
-      // Preserve existing cursor/drawing, just update identity
-      const current = providerRef.current.awareness.getLocalState();
-      providerRef.current.setAwarenessField('user', {
-        ...current?.user,
-        name: user.name,
-        color: user.color,
-      });
-    }
-  }, [user]);
-
 
   useEffect(() => {
     function animate() {
@@ -152,7 +136,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
 
     animationRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(animationRef.current);
-  }, [cursors, smoothingFactor]);
+  }, [cursors]);
 
 
   // --- LIFECYCLE AND CONNECTION ---
@@ -213,7 +197,6 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
           }
         }
       });
-
       setCursors(newCursors);
       setRemoteLines(newRemoteLines);
       if (onActiveUsersChange) onActiveUsersChange(activeUsersList);
@@ -230,25 +213,25 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
 
 
   // --- HANDLERS (Drawing Logic) ---
-  const handleMouseDown = useCallback((e: KonvaEventObject<MouseEvent>) => {
+  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
     if (tool !== "pencil" || e.target !== e.target.getStage() || !yjsShapesMap) {
       return;
     }
     setIsDrawing(true);
     const pos = e.target.getStage()!.getPointerPosition();
     setCurrentLine([pos.x, pos.y]);
-  }, [tool, yjsShapesMap]);
+  }
 
-  const handleMouseMove = useCallback((e: KonvaEventObject<MouseEvent>) => {
+  const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
     if (!isDrawing || tool !== "pencil" || !yjsShapesMap) {
       return;
     }
     const stage = e.target.getStage();
     const pos = stage!.getPointerPosition();
     setCurrentLine((prevLine) => prevLine.concat([pos.x, pos.y]));
-  }, [isDrawing, tool, yjsShapesMap]);
+  }
 
-  const handleMouseUp = useCallback(() => {
+  const handleMouseUp = () => {
     if (!isDrawing || tool !== "pencil" || !yjsShapesMap) {
       return;
     }
@@ -263,7 +246,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
     setCurrentLine([]);
     throttledSetAwareness(null, null, null);
     saveThumbnail();
-  }, [isDrawing, tool, currentLine, yjsShapesMap, saveThumbnail]);
+  };
 
 
   // --- COMBINED STAGE HANDLERS ---

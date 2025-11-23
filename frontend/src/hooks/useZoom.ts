@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { KonvaEventObject } from "konva/lib/Node";
+import { BoardStorage } from "@/utils/boardStorage";
 
 
 const SCALE_BY = 1.1;
@@ -9,12 +10,24 @@ const MAX_ZOOM = 10;
 interface useZoomProps {
     stageRef: any,
     stageSize: any,
+    boardId: string
 }
 
-export function useZoom({ stageRef, stageSize }: useZoomProps) {
+const getInitialViewport = (boardId: string) => {
+    return BoardStorage.getById(boardId)?.viewport ?? { x: 0, y: 0, scale: 1 };
+};
 
-    const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
-    const [stageScale, setStageScale] = useState(1);
+export function useZoom({ stageRef, stageSize, boardId }: useZoomProps) {
+
+    const [viewport, setViewport] = useState(() => getInitialViewport(boardId));
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            // No need to construct the object, it already exists
+            BoardStorage.update(boardId, { viewport });
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [viewport, boardId]);
 
     const zoomToCenter = (direction: 1 | -1 | 0) => {
         const stage = stageRef.current;
@@ -22,8 +35,7 @@ export function useZoom({ stageRef, stageSize }: useZoomProps) {
 
         // Reset
         if (direction === 0) {
-            setStageScale(1);
-            setStagePos({ x: 0, y: 0 });
+            setViewport({ x: 0, y: 0, scale: 1 })
             return;
         }
 
@@ -40,11 +52,7 @@ export function useZoom({ stageRef, stageSize }: useZoomProps) {
         const newScale = direction > 0 ? oldScale * SCALE_BY : oldScale / SCALE_BY;
         if (newScale < MIN_ZOOM || newScale > MAX_ZOOM) return;
 
-        setStageScale(newScale);
-        setStagePos({
-            x: center.x - relatedTo.x * newScale,
-            y: center.y - relatedTo.y * newScale,
-        });
+        setViewport({ x: center.x - relatedTo.x * newScale, y: center.y - relatedTo.y * newScale, scale: newScale })
     };
 
     const handleWheel = (e: KonvaEventObject<WheelEvent>) => {
@@ -68,8 +76,8 @@ export function useZoom({ stageRef, stageSize }: useZoomProps) {
 
             if (newScale < MIN_ZOOM || newScale > MAX_ZOOM) return;
 
-            setStageScale(newScale);
-            setStagePos({
+            setViewport({
+                scale: newScale,
                 x: pointer.x - mousePointTo.x * newScale,
                 y: pointer.y - mousePointTo.y * newScale,
             });
@@ -78,10 +86,9 @@ export function useZoom({ stageRef, stageSize }: useZoomProps) {
         else {
             const newX = stage.x() - e.evt.deltaX;
             const newY = stage.y() - e.evt.deltaY;
-
-            setStagePos({ x: newX, y: newY });
+            setViewport(prev => ({ ...prev, x: newX, y: newY }))
         }
     };
 
-    return ({ zoomToCenter, stagePos, stageScale, handleWheel })
+    return ({ zoomToCenter, viewport, setViewport, handleWheel })
 }

@@ -31,7 +31,6 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
       pixelRatio: 0.2,
       mimeType: "image/png",
     });
-
     BoardStorage.update(boardId, { thumbnail: dataURL });
   };
 
@@ -91,11 +90,17 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
     throttledSetAwareness(null, null, null);
   };
 
+  const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
+    if (e.target === e.target.getStage()) {
+      setViewport(prev => ({ ...prev, x: e.target.x(), y: e.target.y() }))
+    }
+  };
+
   const cursorStyle = tool === "pencil" ? "crosshair" : "default";
 
   const { stageSize, containerRef } = useCanvasSize();
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = useWhiteboard({ boardId, onActiveUsersChange });
-  const { zoomToCenter, stagePos, stageScale, handleWheel } = useZoom({ stageRef, stageSize })
+  const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
 
 
   return (
@@ -110,11 +115,12 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
         width={stageSize.width}
         height={stageSize.height}
         onWheel={handleWheel}
-        scaleX={stageScale}
-        scaleY={stageScale}
-        x={stagePos.x}
-        y={stagePos.y}
+        scaleX={viewport.scale}
+        scaleY={viewport.scale}
+        x={viewport.x}
+        y={viewport.y}
         draggable={tool == "select"}
+        onDragEnd={handleDragEnd}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseMove={handleStageMouseMove}
@@ -178,7 +184,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
         </button>
 
         <span className="text-xs font-mono w-12 text-center">
-          {Math.round(stageScale * 100)}%
+          {Math.round(viewport.scale * 100)}%
         </span>
 
         <button

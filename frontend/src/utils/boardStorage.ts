@@ -5,6 +5,11 @@ export interface BoardMeta {
     name: string;
     lastVisited: number;
     thumbnail?: string;
+    viewport?: {
+        x: number;
+        y: number;
+        scale: number;
+    };
 }
 
 const STORAGE_KEY = "whiteboard_local_index";
@@ -22,6 +27,11 @@ export const BoardStorage = {
         }
     },
 
+    getById: (id: string): BoardMeta | undefined => {
+        const list = BoardStorage.getAll();
+        return list.find((b) => b.id === id);
+    },
+
     // Add or Update a board
     update: (id: string, updates: Partial<BoardMeta>) => {
         const list = BoardStorage.getAll();
@@ -32,6 +42,7 @@ export const BoardStorage = {
                 id,
                 name: updates.name || "Untitled Board",
                 lastVisited: Date.now(),
+                ...updates
             });
         } else {
             list[index] = { ...list[index], ...updates, lastVisited: Date.now() };
@@ -39,20 +50,15 @@ export const BoardStorage = {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     },
 
-    // Get specific board name
     getName: (id: string): string => {
         const list = BoardStorage.getAll();
         const board = list.find((b) => b.id === id);
         return board ? board.name : "Untitled Board";
     },
 
-    // Delete board
     remove: (id: string) => {
         const list = BoardStorage.getAll().filter((b) => b.id !== id);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-
-        // Also attempt to delete the actual heavy Y.js data from IndexedDB
-        // The default y-indexeddb name format is just the room name (boardId)
         window.indexedDB.deleteDatabase(id);
     }
 };

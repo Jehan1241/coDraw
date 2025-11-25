@@ -23,7 +23,6 @@ export function useZoom({ stageRef, stageSize, boardId }: useZoomProps) {
 
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            // No need to construct the object, it already exists
             BoardStorage.update(boardId, { viewport });
         }, 500);
         return () => clearTimeout(timeoutId);
@@ -60,7 +59,7 @@ export function useZoom({ stageRef, stageSize, boardId }: useZoomProps) {
         const stage = e.target.getStage();
         if (!stage) return;
 
-        // A. ZOOM (Ctrl + Wheel)
+        //ZOOM (Ctrl + Wheel)
         if (e.evt.ctrlKey || e.evt.metaKey) {
             const oldScale = stage.scaleX();
             const pointer = stage.getPointerPosition();

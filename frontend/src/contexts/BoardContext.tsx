@@ -34,6 +34,9 @@ export function BoardProvider({
     // 1. Setup Persistence (Browser)
     const localProvider = new IndexeddbPersistence(boardId, ydoc);
     const WS_URL = import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:1234";
+
+    console.log("connecting to", WS_URL);
+
     // 2. Setup Network (Hocuspocus)
     const networkProvider = new HocuspocusProvider({
       url: WS_URL,

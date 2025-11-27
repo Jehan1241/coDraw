@@ -1,50 +1,51 @@
 // src/contexts/UserContext.tsx
-import { createContext, useContext, useState, useEffect } from 'react';
-import { generateRandomName, getRandomColor } from '@/utils/nameGenerator';
+import { createContext, useContext, useState, useEffect } from "react";
+import { generateRandomName, getRandomColor } from "@/utils/nameGenerator";
+import type { ReactNode } from "react";
 
 interface UserState {
-    name: string;
-    color: string;
+  name: string;
+  color: string;
 }
 
 interface UserContextType {
-    user: UserState;
-    updateName: (name: string) => void;
+  user: UserState;
+  updateName: (name: string) => void;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-    // Initialize state from localStorage or generate new
-    const [user, setUser] = useState<UserState>(() => {
-        const saved = localStorage.getItem('whiteboard_identity');
-        if (saved) {
-            return JSON.parse(saved);
-        }
-        return {
-            name: generateRandomName(),
-            color: getRandomColor(),
-        };
-    });
-
-    // Save to localStorage whenever user changes
-    useEffect(() => {
-        localStorage.setItem('whiteboard_identity', JSON.stringify(user));
-    }, [user]);
-
-    const updateName = (name: string) => {
-        setUser((prev) => ({ ...prev, name }));
+  // Initialize state from localStorage or generate new
+  const [user, setUser] = useState<UserState>(() => {
+    const saved = localStorage.getItem("whiteboard_identity");
+    if (saved) {
+      return JSON.parse(saved);
+    }
+    return {
+      name: generateRandomName(),
+      color: getRandomColor(),
     };
+  });
 
-    return (
-        <UserContext.Provider value={{ user, updateName }}>
-            {children}
-        </UserContext.Provider>
-    );
+  // Save to localStorage whenever user changes
+  useEffect(() => {
+    localStorage.setItem("whiteboard_identity", JSON.stringify(user));
+  }, [user]);
+
+  const updateName = (name: string) => {
+    setUser((prev) => ({ ...prev, name }));
+  };
+
+  return (
+    <UserContext.Provider value={{ user, updateName }}>
+      {children}
+    </UserContext.Provider>
+  );
 }
 
 export function useUser() {
-    const context = useContext(UserContext);
-    if (!context) throw new Error("useUser must be used within UserProvider");
-    return context;
+  const context = useContext(UserContext);
+  if (!context) throw new Error("useUser must be used within UserProvider");
+  return context;
 }

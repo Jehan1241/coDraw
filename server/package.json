@@ -4,10 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start:api": "node dist/index.js",
-    "start:realtime": "node dist/realtime.js",
-    "dev:api": "tsx watch src/index.ts",
-    "dev:realtime": "tsx watch src/realtime.ts"
+    "build": "tsc",
+    "start": "node dist/realtime.js",
+    "dev": "tsx watch src/realtime.ts"
   },
   "keywords": [],
   "author": "",

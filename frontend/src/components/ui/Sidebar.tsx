@@ -1,6 +1,6 @@
 // src/components/Sidebar.tsx
 import { Button } from "@/components/ui/button";
-import { MousePointer2, Square, Pencil, Undo2, Redo2 } from "lucide-react";
+import { MousePointer2, Square, Pencil, Undo2, Redo2, Eraser } from "lucide-react";
 import type { Tool } from "@/pages/BoardPage";
 
 interface SidebarProps {
@@ -30,6 +30,7 @@ export function Sidebar({ tool, setTool }: SidebarProps) {
         <ToolButton targetTool="select" icon={MousePointer2} />
         <ToolButton targetTool="rectangle" icon={Square} />
         <ToolButton targetTool="pencil" icon={Pencil} />
+        <ToolButton targetTool="eraser" icon={Eraser} />
 
         <div className="w-full h-px bg-gray-200 my-1" />
 

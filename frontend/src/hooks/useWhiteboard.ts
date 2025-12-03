@@ -14,8 +14,17 @@ interface CursorData {
 
 export type SyncedShape = {
   id: string;
-  type: "line";
-  points: number[];
+  type: "line" | "rect";
+  // Line props
+  points?: number[];
+  stroke?: string;
+  strokeWidth?: number;
+  // Rect props
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  fill?: string;
 };
 
 function throttle(fn: (...args: any[]) => void, delay: number) {

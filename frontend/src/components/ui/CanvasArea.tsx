@@ -1,17 +1,15 @@
-import { useState, useRef } from "react";
+import { useRef } from "react";
 import { Stage, Layer, Line } from "react-konva";
-import type { KonvaEventObject } from "konva/lib/Node";
 import type { Tool } from "@/pages/BoardPage";
 import { Cursor } from "@/components/ui/cursor";
 import { BoardStorage } from "../../utils/boardStorage";
 import { useCanvasSize } from "@/hooks/useCanvasSize";
 import { useWhiteboard } from "@/hooks/useWhiteboard";
 import type { ActiveUser } from "./BoardHeader";
-import type { SyncedShape } from "@/hooks/useWhiteboard";
 import { Minus, Plus, RefreshCcw } from "lucide-react";
 import { useZoom } from "@/hooks/useZoom";
+import { useMouseMove } from "@/hooks/useMouseMove";
 
-type LineData = number[];
 
 interface CanvasAreaProps {
   tool: Tool;
@@ -20,9 +18,7 @@ interface CanvasAreaProps {
 }
 
 export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaProps) {
-  const [isDrawing, setIsDrawing] = useState(false);
   const stageRef = useRef<any>(null);
-  const [currentLine, setCurrentLine] = useState<LineData>([]);
 
 
   const saveThumbnail = () => {
@@ -34,73 +30,18 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
     BoardStorage.update(boardId, { thumbnail: dataURL });
   };
 
-  const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
-    if (tool !== "pencil" || e.target !== e.target.getStage() || !yjsShapesMap) {
-      return;
-    }
-    setIsDrawing(true);
-    const pos = e.target.getStage().getRelativePointerPosition();
-    if (!pos) return
-    setCurrentLine([pos.x, pos.y]);
-  }
 
-  const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
-    if (!isDrawing || tool !== "pencil" || !yjsShapesMap || e.target !== e.target.getStage()) {
-      return;
-    }
-    const pos = e.target.getStage().getRelativePointerPosition();
-    if (!pos) return;
-    setCurrentLine((prevLine) => prevLine.concat([pos.x, pos.y]));
-  }
-
-  const handleMouseUp = () => {
-    if (!isDrawing || tool !== "pencil" || !yjsShapesMap) {
-      return;
-    }
-    setIsDrawing(false);
-    const uniqueId = crypto.randomUUID();
-    const newLine: SyncedShape = {
-      id: uniqueId,
-      type: "line",
-      points: currentLine,
-    };
-    yjsShapesMap.set(uniqueId, newLine);
-    setCurrentLine([]);
-    throttledSetAwareness(null, null, null);
-    saveThumbnail();
-  };
-
-  const handleStageMouseMove = (e: KonvaEventObject<MouseEvent>) => {
-    const stage = e.target.getStage();
-    if (stage) {
-      if (e.target !== e.target.getStage()) return;
-      const pos = e.target.getStage().getRelativePointerPosition();
-      if (pos) {
-        throttledSetAwareness(
-          pos.x,
-          pos.y,
-          isDrawing ? currentLine.concat([pos.x, pos.y]) : null
-        );
-      }
-    }
-    handleMouseMove(e);
-  };
-
-  const handleStageMouseLeave = (_: KonvaEventObject<MouseEvent>) => {
-    throttledSetAwareness(null, null, null);
-  };
-
-  const handleDragEnd = (e: KonvaEventObject<DragEvent>) => {
-    if (e.target === e.target.getStage()) {
-      setViewport(prev => ({ ...prev, x: e.target.x(), y: e.target.y() }))
-    }
-  };
 
   const cursorStyle = tool === "pencil" ? "crosshair" : "default";
 
   const { stageSize, containerRef } = useCanvasSize();
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = useWhiteboard({ boardId, onActiveUsersChange });
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
+  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap })
+
+
+  const ERASER_SCREEN_SIZE = 15;
+
 
 
   return (
@@ -120,24 +61,32 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
         x={viewport.x}
         y={viewport.y}
         draggable={tool == "select"}
-        onDragEnd={handleDragEnd}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseMove={handleStageMouseMove}
-        onMouseLeave={handleStageMouseLeave}
+        onDragEnd={mouseHandlers.onDragEnd}
+        onMouseDown={mouseHandlers.onMouseDown}
+        onMouseUp={mouseHandlers.onMouseUp}
+        onMouseMove={mouseHandlers.onStageMouseMove}
+        onMouseLeave={mouseHandlers.onStageLeave}
       >
         <Layer>
           {syncedShapes.map((shape) => {
             if (shape.type === "line") {
+
+              const hitWidth = Math.max(
+                shape.points ? 5 : 0,
+                ERASER_SCREEN_SIZE / viewport.scale
+              );
+
               return (
                 <Line
                   key={shape.id}
+                  id={shape.id}
                   points={shape.points}
                   stroke="black"
                   strokeWidth={2}
                   tension={0.5}
                   lineCap="round"
                   lineJoin="round"
+                  hitStrokeWidth={hitWidth}//make this == linewidth later?
                 />
               );
             }
@@ -156,7 +105,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
             />
           ))}
           <Line
-            points={currentLine}
+            points={currentShapeData}
             stroke="black"
             strokeWidth={2}
             tension={0.5}

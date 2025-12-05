@@ -2,7 +2,7 @@ import { useRef } from "react";
 import { Stage, Layer, Line } from "react-konva";
 import type { Tool } from "@/pages/BoardPage";
 import { Cursor } from "@/components/ui/cursor";
-import { BoardStorage } from "../../utils/boardStorage";
+import { BoardStorage } from "../utils/boardStorage";
 import { useCanvasSize } from "@/hooks/useCanvasSize";
 import { useWhiteboard } from "@/hooks/useWhiteboard";
 import type { ActiveUser } from "./BoardHeader";

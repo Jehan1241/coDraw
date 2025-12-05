@@ -1,9 +1,9 @@
 // src/pages/BoardPage.tsx
 
 import { useParams, useNavigate } from 'react-router-dom';
-import { BoardHeader, type ActiveUser } from '@/components/ui/BoardHeader';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { CanvasArea } from '@/components/ui/CanvasArea';
+import { BoardHeader, type ActiveUser } from '@/components/BoardHeader';
+import { Sidebar } from '@/components/sidebar/Sidebar';
+import { CanvasArea } from '@/components/CanvasArea';
 import { useState, useEffect } from 'react';
 import { BoardProvider } from '@/contexts/BoardContext';
 import { BoardStorage } from "@/utils/boardStorage";

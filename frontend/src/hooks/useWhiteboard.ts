@@ -3,7 +3,7 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import { useEffect, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import type { ActiveUser } from "@/components/ui/BoardHeader";
+import type { ActiveUser } from "@/components/BoardHeader";
 
 interface CursorData {
   x: number;

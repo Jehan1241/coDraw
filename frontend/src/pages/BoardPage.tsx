@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { BoardProvider } from '@/contexts/BoardContext';
 import { BoardStorage } from "@/utils/boardStorage";
 
-export type Tool = "select" | "pencil" | "rectangle" | "eraser";
+export type Tool = "select" | "pencil" | "rectangle" | "eraser" | "pan";
 
 export function BoardPage() {
     const [tool, setTool] = useState<Tool>('select');

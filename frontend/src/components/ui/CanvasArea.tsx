@@ -86,7 +86,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
                   tension={0.5}
                   lineCap="round"
                   lineJoin="round"
-                  hitStrokeWidth={hitWidth}//make this == linewidth later?
+                  hitStrokeWidth={hitWidth}
                 />
               );
             }

@@ -8,20 +8,19 @@ interface FlybarProps {
 
 export function Flybar({ flyoutOpen, setFlyoutOpen, children }: FlybarProps) {
     return (
-        <><div
-            className={`
-            absolute top-0 left-full z-10 h-full bg-white border-y border-r shadow-sm rounded-r-xl flex items-center transition-all duration-300 ease-in-out pointer-events-auto 
-            ${flyoutOpen ? "w-48 -translate-x-3" : "w-2 -translate-x-3"}`}
-        >
-            {/* Inner Content (Fades out when closed) */}
-            <div className={`w-full pl-4 overflow-hidden transition-opacity duration-200 ${flyoutOpen ? "opacity-100 delay-100" : "opacity-0"}`}>
-                <div className="p-4 pl-6 whitespace-nowrap">
+        <>
+            <div
+                className={`
+            absolute top-0 left-full z-10 h-full bg-white border-y border-r shadow-sm rounded-r-xl flex items-start transition-all duration-300 ease-in-out pointer-events-auto 
+            ${flyoutOpen ? "w-72 -translate-x-3" : "w-2 -translate-x-3"}`}
+            >
+                {/* Inner Content (Fades out when closed) */}
+                <div className={`w-full p-2 pl-9 overflow-hidden flex flex-col gap-3 transition-opacity duration-200 ${flyoutOpen ? "opacity-100 delay-100" : "opacity-0"}`}>
                     {children}
                 </div>
+
+
             </div>
-
-
-        </div>
             {/* 3. THE HANDLE BUTTON (Sticks out to the right) */}
             <button
                 onClick={() => setFlyoutOpen(!flyoutOpen)}

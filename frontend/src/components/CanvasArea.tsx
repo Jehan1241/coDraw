@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Stage, Layer, Line } from "react-konva";
-import type { Tool } from "@/pages/BoardPage";
+import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { Cursor } from "@/components/ui/cursor";
 import { BoardStorage } from "../utils/boardStorage";
 import { useCanvasSize } from "@/hooks/useCanvasSize";
@@ -9,17 +9,26 @@ import type { ActiveUser } from "./BoardHeader";
 import { Minus, Plus, RefreshCcw } from "lucide-react";
 import { useZoom } from "@/hooks/useZoom";
 import { useMouseMove } from "@/hooks/useMouseMove";
+import { WobblyLine } from "./ui/WobblyLine";
 
 
 interface CanvasAreaProps {
   tool: Tool;
+  options: ToolOptions;
   boardId: string;
   onActiveUsersChange?: (users: ActiveUser[]) => void;
+
 }
 
-export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaProps) {
-  const stageRef = useRef<any>(null);
+const getDashArray = (type?: string, width?: number) => {
+  const w = width || 2;
+  if (type === 'dashed') return [w * 4, w * 4];
+  if (type === 'dotted') return [w, w * 2];
+  return undefined;
+};
 
+export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: CanvasAreaProps) {
+  const stageRef = useRef<any>(null);
 
   const saveThumbnail = () => {
     if (!stageRef.current) return;
@@ -31,16 +40,50 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
   };
 
 
-
   const cursorStyle = tool === "pencil" ? "crosshair" : "default";
 
   const { stageSize, containerRef } = useCanvasSize();
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = useWhiteboard({ boardId, onActiveUsersChange });
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
-  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap })
+  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options })
 
 
   const ERASER_SCREEN_SIZE = 15;
+
+
+  const renderShape = (shape: any) => {
+    const hitWidth = Math.max(
+      shape.strokeWidth || 2,
+      ERASER_SCREEN_SIZE / viewport.scale
+    );
+
+    if (shape.strokeType === 'wobbly') {
+      return (
+        <WobblyLine
+          key={shape.id || 'current'}
+          id={shape.id}
+          points={shape.points}
+          color={shape.strokeColor || "black"}
+          width={shape.strokeWidth || 2}
+          hitStrokeWidth={hitWidth}
+        />
+      );
+    }
+    return (
+      <Line
+        key={shape.id || 'current'}
+        id={shape.id}
+        points={shape.points}
+        stroke={shape.strokeColor || "black"}
+        strokeWidth={shape.strokeWidth || 2}
+        dash={getDashArray(shape.strokeType, shape.strokeWidth)}
+        tension={0.5}
+        lineCap="round"
+        lineJoin="round"
+        hitStrokeWidth={hitWidth}
+      />
+    );
+  };
 
 
 
@@ -68,30 +111,15 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
         onMouseLeave={mouseHandlers.onStageLeave}
       >
         <Layer>
+          {/* 3. RENDER SAVED SHAPES */}
           {syncedShapes.map((shape) => {
             if (shape.type === "line") {
-
-              const hitWidth = Math.max(
-                shape.points ? 5 : 0,
-                ERASER_SCREEN_SIZE / viewport.scale
-              );
-
-              return (
-                <Line
-                  key={shape.id}
-                  id={shape.id}
-                  points={shape.points}
-                  stroke="black"
-                  strokeWidth={2}
-                  tension={0.5}
-                  lineCap="round"
-                  lineJoin="round"
-                  hitStrokeWidth={hitWidth}
-                />
-              );
+              return renderShape(shape);
             }
             return null;
           })}
+
+
           {Array.from(remoteLines.entries()).map(([clientID, points]) => (
             <Line
               key={`ghost-${clientID}`}
@@ -104,14 +132,9 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange }: CanvasAreaPro
               opacity={0.5}
             />
           ))}
-          <Line
-            points={currentShapeData}
-            stroke="black"
-            strokeWidth={2}
-            tension={0.5}
-            lineCap="round"
-            lineJoin="round"
-          />
+          {currentShapeData && currentShapeData.points && renderShape(currentShapeData)}
+
+          {/* RENDER CURSORS */}
           {Array.from(smoothCursors.entries()).map(([clientID, cursor]) => (
             <Cursor
               key={clientID}

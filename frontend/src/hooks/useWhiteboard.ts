@@ -17,8 +17,9 @@ export type SyncedShape = {
   type: "line" | "rect";
   // Line props
   points?: number[];
-  stroke?: string;
+  strokeColor?: string;
   strokeWidth?: number;
+  strokeType?: string
   // Rect props
   x?: number;
   y?: number;

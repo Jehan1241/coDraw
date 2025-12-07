@@ -1,4 +1,5 @@
 import type { SyncedShape } from "@/hooks/useWhiteboard";
+import type { ToolOptions } from "@/pages/BoardPage";
 import type { Stage } from "konva/lib/Stage";
 import type { Vector2d } from "konva/lib/types";
 import type { YMap } from "node_modules/yjs/dist/src/internals";
@@ -13,7 +14,7 @@ export interface ToolInteractionContext {
 }
 
 export interface ToolLogic {
-    onDown: (x: number, y: number) => CurrentShapeData;
+    onDown: (x: number, y: number, options: ToolOptions) => CurrentShapeData;
     onMove: (
         x: number,
         y: number,

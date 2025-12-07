@@ -2,7 +2,7 @@ import type { KonvaEventObject } from "konva/lib/Node";
 import { TOOLS } from "@/tools/toolpicker";
 import { useState, type Dispatch, type SetStateAction } from "react";
 import type { CurrentShapeData, ToolInteractionContext } from "@/tools/types";
-import type { Tool } from "@/pages/BoardPage";
+import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import type { SyncedShape } from "./useWhiteboard";
 import type { YMap } from "node_modules/yjs/dist/src/internals";
 
@@ -10,6 +10,7 @@ interface useMouseMoveProps {
     throttledSetAwareness: (...args: any[]) => void,
     saveThumbnail: () => void,
     tool: Tool,
+    options: ToolOptions,
     setViewport: Dispatch<SetStateAction<{
         x: number;
         y: number;
@@ -19,7 +20,7 @@ interface useMouseMoveProps {
 }
 
 
-export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap }: useMouseMoveProps) {
+export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options }: useMouseMoveProps) {
 
     const [currentShapeData, setCurrentShapeData] = useState<CurrentShapeData>([]);
     const [isDrawing, setIsDrawing] = useState(false);
@@ -33,7 +34,7 @@ export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport
         const pos = stage?.getRelativePointerPosition();
         if (pos) {
             setIsDrawing(true);
-            const newData = logic.onDown(pos.x, pos.y);
+            const newData = logic.onDown(pos.x, pos.y, options);
             setCurrentShapeData(newData);
         }
     };
@@ -76,7 +77,7 @@ export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport
         if (stage) {
             const pos = stage.getRelativePointerPosition();
             if (pos) {
-                const ghostData = (isDrawing && Array.isArray(currentShapeData)) ? currentShapeData : null;
+                const ghostData = (isDrawing && currentShapeData?.points) ? currentShapeData.points : null;
                 throttledSetAwareness(pos.x, pos.y, ghostData);
             }
         }

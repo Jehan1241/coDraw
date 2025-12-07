@@ -1,20 +1,20 @@
 import { Button } from "@/components/ui/button";
 import {
   MousePointer2, Square, Pencil, Undo2, Redo2, Eraser, Hand,
-  Pipette
 } from "lucide-react";
-import type { Tool } from "@/pages/BoardPage";
+import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { useState } from "react";
-import { HexColorPicker } from "react-colorful";
 import { Flybar } from "./Flybar";
 import { Input } from "../ui/input";
 
 interface SidebarProps {
   tool: Tool;
   setTool: (tool: Tool) => void;
+  options: ToolOptions;
+  setOptions: (opts: ToolOptions) => void;
 }
 
-export function Sidebar({ tool, setTool }: SidebarProps) {
+export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
 
   const ToolButton = ({ targetTool, icon: Icon }: { targetTool: Tool, icon: any }) => (
     <Button
@@ -28,7 +28,14 @@ export function Sidebar({ tool, setTool }: SidebarProps) {
   );
 
   const [flyoutOpen, setFlyoutOpen] = useState(false);
-  const [colorPickerOpen, setColorPickerOpen] = useState(false);
+
+
+  const STROKE_WIDTHS = [
+    { id: 'small', label: 'S', value: 1 },
+    { id: 'medium', label: 'M', value: 2 },
+    { id: 'large', label: 'L', value: 4 },
+    { id: 'xlarge', label: 'XL', value: 8 },
+  ];
 
   const STROKE_TYPES = [
     {
@@ -77,7 +84,7 @@ export function Sidebar({ tool, setTool }: SidebarProps) {
   return (
     <>
       {/* DESKTOP WRAPPER */}
-      <div className="hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 items-center z-50 pointer-events-none">
+      <div className="hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 items-center z-50 pointer-events-none select-none">
 
         {/* 1. MAIN SIDEBAR (Sits on top, z-20) */}
         <aside className="relative z-20 flex flex-col items-center gap-y-1 p-2 bg-white border shadow-xl rounded-2xl pointer-events-auto">
@@ -101,10 +108,7 @@ export function Sidebar({ tool, setTool }: SidebarProps) {
           <div className="flex gap-1 flex-col">
             <p className="text-xs text-muted-foreground">Stroke Width</p>
             <div className="flex gap-2">
-              <div><Button variant={"outline"} className="w-8 h-8">S</Button></div>
-              <div><Button variant={"outline"} className="w-8 h-8">M</Button></div>
-              <div><Button variant={"outline"} className="w-8 h-8">L</Button></div>
-              <div><Button variant={"outline"} className="w-8 h-8">XL</Button></div>
+              {STROKE_WIDTHS.map((width) => (<Button variant={"outline"} className={`w-8 h-8 ${options.strokeWidth == width.value ? ("bg-accent") : ("")}`} onClick={() => { setOptions({ ...options, strokeWidth: width.value }) }}>{width.label}</Button>))}
             </div>
           </div>
 
@@ -116,7 +120,8 @@ export function Sidebar({ tool, setTool }: SidebarProps) {
                   key={type.id}
                   variant="outline"
                   size="icon"
-                  className={`w-8 h-8 rounded-md transition-all`}
+                  onClick={() => { setOptions({ ...options, strokeType: type.id as ToolOptions["strokeType"] }) }}
+                  className={`w-8 h-8 ${options.strokeType === type.id ? ("bg-accent") : ("")}`}
                   title={type.label}
                 >
                   {type.icon}
@@ -136,7 +141,8 @@ export function Sidebar({ tool, setTool }: SidebarProps) {
               {COLORS.map((c) => (
                 <button
                   key={c}
-                  className={`w-6 h-6 rounded-full`}
+                  onClick={() => { setOptions({ ...options, strokeColor: c }) }}
+                  className={`w-6 h-6 rounded-full ${options.strokeColor === c ? "scale-110 ring-muted-foreground/25 ring-2 ring-offset-1" : ""}`}
                   style={{ backgroundColor: c }}
 
                 />
@@ -144,7 +150,13 @@ export function Sidebar({ tool, setTool }: SidebarProps) {
             </div>
             <div className="flex justify-between items-center gap-2 mt-1 mr-2">
               <p className="text-xs text-muted-foreground">Hex</p>
-              <Input className="h-7"></Input>
+              <Input
+                className="h-7 font-mono uppercase text-xs"
+                value={options.strokeColor}
+                onChange={(e) => setOptions({ ...options, strokeColor: e.target.value })}
+                maxLength={7}
+                placeholder="#000000"
+              />
             </div>
           </div>
 

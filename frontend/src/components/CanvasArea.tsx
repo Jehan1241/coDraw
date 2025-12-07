@@ -51,36 +51,38 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
   const ERASER_SCREEN_SIZE = 15;
 
 
-  const renderShape = (shape: any) => {
+  const renderShape = (shape: any, extraProps: any = {}) => {
     const hitWidth = Math.max(
       shape.strokeWidth || 2,
       ERASER_SCREEN_SIZE / viewport.scale
     );
 
+    const commonProps = {
+      key: shape.id || 'temp',
+      id: shape.id,
+      points: shape.points,
+      stroke: shape.strokeColor || "black",
+      strokeWidth: shape.strokeWidth || 2,
+      hitStrokeWidth: hitWidth,
+      lineCap: "round" as const,
+      lineJoin: "round" as const,
+      ...extraProps
+    };
+
     if (shape.strokeType === 'wobbly') {
       return (
         <WobblyLine
-          key={shape.id || 'current'}
-          id={shape.id}
-          points={shape.points}
+          {...commonProps}
           color={shape.strokeColor || "black"}
           width={shape.strokeWidth || 2}
-          hitStrokeWidth={hitWidth}
         />
       );
     }
     return (
       <Line
-        key={shape.id || 'current'}
-        id={shape.id}
-        points={shape.points}
-        stroke={shape.strokeColor || "black"}
-        strokeWidth={shape.strokeWidth || 2}
+        {...commonProps}
         dash={getDashArray(shape.strokeType, shape.strokeWidth)}
         tension={0.5}
-        lineCap="round"
-        lineJoin="round"
-        hitStrokeWidth={hitWidth}
       />
     );
   };
@@ -120,17 +122,12 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
           })}
 
 
-          {Array.from(remoteLines.entries()).map(([clientID, points]) => (
-            <Line
-              key={`ghost-${clientID}`}
-              points={points}
-              stroke="#888"
-              strokeWidth={2}
-              tension={0.5}
-              lineCap="round"
-              lineJoin="round"
-              opacity={0.5}
-            />
+          {Array.from(remoteLines.entries()).map(([clientID, shapeData]) => (
+            renderShape(shapeData, {
+              key: `ghost-${clientID}`,
+              opacity: 0.5,
+              listening: false // Click-through
+            })
           ))}
           {currentShapeData && currentShapeData.points && renderShape(currentShapeData)}
 

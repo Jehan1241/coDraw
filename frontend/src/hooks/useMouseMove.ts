@@ -77,7 +77,7 @@ export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport
         if (stage) {
             const pos = stage.getRelativePointerPosition();
             if (pos) {
-                const ghostData = (isDrawing && currentShapeData?.points) ? currentShapeData.points : null;
+                const ghostData = (isDrawing && currentShapeData?.points) ? currentShapeData : null;
                 throttledSetAwareness(pos.x, pos.y, ghostData);
             }
         }

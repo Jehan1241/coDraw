@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Stage, Layer, Line } from "react-konva";
+import { Stage, Layer, Line, Rect } from "react-konva";
 import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { Cursor } from "@/components/ui/cursor";
 import { BoardStorage } from "../utils/boardStorage";
@@ -66,10 +66,28 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
       hitStrokeWidth: hitWidth,
       lineCap: "round" as const,
       lineJoin: "round" as const,
+      listening: true,
       ...extraProps
     };
 
-    if (shape.strokeType === 'wobbly') {
+    if (shape.type === 'rect') {
+      return (
+        <Rect
+          key={shape.id || 'temp'}
+          {...commonProps}
+          x={shape.x}
+          y={shape.y}
+          width={shape.width}
+          height={shape.height}
+          fill={shape.fill || "transparent"}
+          stroke={shape.strokeColor || "black"}
+          dash={getDashArray(shape.strokeType, shape.strokeWidth)}
+          cornerRadius={shape.strokeType === 'wobbly' ? 10 : 0}
+        />
+      );
+    }
+
+    if (shape.strokeType === 'wobbly' && shape.points) {
       return (
         <WobblyLine
           {...commonProps}
@@ -78,13 +96,17 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
         />
       );
     }
-    return (
-      <Line
-        {...commonProps}
-        dash={getDashArray(shape.strokeType, shape.strokeWidth)}
-        tension={0.5}
-      />
-    );
+
+    if (shape.points) {
+      return (
+        <Line
+          {...commonProps}
+          dash={getDashArray(shape.strokeType, shape.strokeWidth)}
+          tension={0.5}
+        />
+      );
+    }
+    return null
   };
 
 
@@ -115,8 +137,11 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
         <Layer>
           {/* 3. RENDER SAVED SHAPES */}
           {syncedShapes.map((shape) => {
-            if (shape.type === "line") {
-              return renderShape(shape);
+            if (shape.type === "line" || shape.type === "rect") {
+              const isDrawingTool = tool === "pencil" || tool === "rectangle";
+              return renderShape(shape, {
+                listening: !isDrawingTool // Disable listening if drawing to draw rect in rect
+              });
             }
             return null;
           })}
@@ -129,8 +154,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
               listening: false // Click-through
             })
           ))}
-          {currentShapeData && currentShapeData.points && renderShape(currentShapeData)}
-
+          {currentShapeData && (currentShapeData.points || currentShapeData.type === 'rect') && renderShape(currentShapeData)}
           {/* RENDER CURSORS */}
           {Array.from(smoothCursors.entries()).map(([clientID, cursor]) => (
             <Cursor

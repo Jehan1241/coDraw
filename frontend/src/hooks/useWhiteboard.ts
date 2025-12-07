@@ -30,7 +30,12 @@ export type SyncedShape = {
 
 
 export interface GhostShapeData {
-  points: number[];
+  type?: string;
+  points?: number[]; // Make optional
+  x?: number;        // Add x
+  y?: number;        // Add y
+  width?: number;    // Add width
+  height?: number;   // Add height
   strokeColor?: string;
   strokeWidth?: number;
   strokeType?: string;
@@ -188,7 +193,7 @@ export function useWhiteboard({
                 color: state.user.color,
               });
             }
-            if (state.user.drawing && state.user.drawing.points) {
+            if (state.user.drawing) {
               newRemoteLines.set(clientID, state.user.drawing);
             }
           }

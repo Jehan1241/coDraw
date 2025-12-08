@@ -86,7 +86,7 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
             <div className="flex items-center space-x-2">
               {/* Color indicator */}
               <div
-                className="w-8 h-8 rounded-full border flex-shrink-0"
+                className="w-8 h-8 rounded-full border shrink-0"
                 style={{ backgroundColor: user.color }}
               />
               <Input
@@ -101,9 +101,9 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
           </div>
         </div>
 
-        <DialogFooter className="sm:justify-start">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Done
+        <DialogFooter className="justify-end">
+          <Button type="button" onClick={onClose}>
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>

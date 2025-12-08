@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Share2 } from "lucide-react";
+import { ArrowLeft, Moon, Share2, Sun } from "lucide-react";
 import { useBoard } from "@/contexts/BoardContext";
 import { ShareModal } from "@/components/ui/ShareModal"; // Import the new modal
 
@@ -27,6 +27,7 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
   // Board Name Editing State
   const [isEditingBoardName, setIsEditingBoardName] = useState(false);
   const [tempBoardName, setTempBoardName] = useState(boardName);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     setTempBoardName(boardName);
@@ -80,8 +81,9 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
       </div>
 
       {/* --- RIGHT ISLAND: Avatars & Share --- */}
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-3 bg-white p-1.5 rounded-xl shadow-sm border">
-        {/* Avatar Stack (Visual Only) */}
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-sm border">
+
+        {/* Avatar Stack */}
         <div className="flex -space-x-2 mr-1">
           {activeUsers.slice(0, 4).map((u) => (
             <div
@@ -100,20 +102,33 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
           )}
         </div>
 
-        <div className="h-4 w-px bg-gray-200" />
+        {/* Separator */}
+        <div className="h-4 w-px bg-gray-200 mx-1" />
 
-        {/* Share Button - Now Opens Modal */}
+        {/* Theme Toggle (UI Only) */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="h-8 w-8 rounded-lg text-gray-500 hover:text-black hover:bg-gray-100"
+        >
+          {isDarkMode ? (
+            <Moon className="h-4 w-4" />
+          ) : (
+            <Sun className="h-4 w-4" />
+          )}
+        </Button>
+
         <Button
           size="sm"
           onClick={() => setIsShareOpen(true)}
-          className="h-8 px-3 text-xs gap-2 rounded-lg bg-black hover:bg-gray-800 text-white"
+          className="text-xs"
         >
           <Share2 className="h-3 w-3" />
           Share
         </Button>
       </div>
 
-      {/* --- RENDER MODAL --- */}
       <ShareModal isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} />
     </>
   );

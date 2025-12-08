@@ -22,7 +22,7 @@ interface useMouseMoveProps {
 
 export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options }: useMouseMoveProps) {
 
-    const [currentShapeData, setCurrentShapeData] = useState<CurrentShapeData>([]);
+    const [currentShapeData, setCurrentShapeData] = useState<CurrentShapeData | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
 
 

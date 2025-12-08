@@ -102,7 +102,7 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
         {/* 1. MAIN SIDEBAR (Sits on top, z-20) */}
         <aside className="relative z-20 flex flex-col items-center gap-y-1 p-2 bg-white border shadow-xl rounded-2xl pointer-events-auto">
           <ToolButton targetTool="select" icon={MousePointer2} />
-          <ToolButton targetTool="select" icon={Hand} />
+          <ToolButton targetTool="pan" icon={Hand} />
           <ToolButton targetTool="rectangle" icon={Square} />
           <ToolButton targetTool="pencil" icon={Pencil} />
           <ToolButton targetTool="eraser" icon={Eraser} />

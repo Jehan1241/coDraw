@@ -128,7 +128,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
         scaleY={viewport.scale}
         x={viewport.x}
         y={viewport.y}
-        draggable={tool == "select"}
+        draggable={tool == "pan"}
         onDragEnd={mouseHandlers.onDragEnd}
         onMouseDown={mouseHandlers.onMouseDown}
         onMouseUp={mouseHandlers.onMouseUp}

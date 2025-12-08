@@ -8,5 +8,6 @@ export const TOOLS: Record<string, ToolLogic> = {
     pencil: PencilTool,
     eraser: EraserTool,
     select: { onDown: () => null, onMove: () => null, onUp: () => null },
+    pan: { onDown: () => null, onMove: () => null, onUp: () => null },
     rectangle: RectangleTool,
 };

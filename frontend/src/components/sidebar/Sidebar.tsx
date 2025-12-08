@@ -27,8 +27,9 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
     </Button>
   );
 
+  // 1. STATE: Track if we are editing the Border color or Fill color
+  const [activeColorMode, setActiveColorMode] = useState<'border' | 'fill'>('border');
   const [flyoutOpen, setFlyoutOpen] = useState(false);
-
 
   const STROKE_WIDTHS = [
     { id: 'small', label: 'S', value: 1 },
@@ -43,7 +44,6 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
       label: 'Solid',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          {/* Crisp, perfect geometric circle */}
           <circle cx="12" cy="12" r="9" />
         </svg>
       )
@@ -53,8 +53,6 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
       label: 'Wobbly',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-          {/* Variable thickness "Brush Stroke" Circle */}
-          {/* This path creates an outer circle (r=10) and an inner off-center circle to create the thickness effect */}
           <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
         </svg>
       )
@@ -79,7 +77,22 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
     }
   ];
 
-  const COLORS = ['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#ea580c', '#64748b', '#AF4562', '#10b981', '#f43f5e', '#8bAcf6'];
+  const COLORS = ['#000000', '#ef4444', '#22c55e', '#3b82f6', '#eab308', '#a855f7', '#ea580c', '#64748b', '#AF4562', '#10b981', '#f43f5e',];
+
+  // 2. HELPER: Get the color value for the currently active mode
+  // If fill is undefined or boolean false, treat it as "transparent" string
+  const activeColorValue = activeColorMode === 'border'
+    ? options.strokeColor
+    : (typeof options.fill === 'string' ? options.fill : 'transparent');
+
+  // 3. LOGIC: Update the correct property based on mode
+  const handleColorChange = (newColor: string) => {
+    if (activeColorMode === 'border') {
+      setOptions({ ...options, strokeColor: newColor });
+    } else {
+      setOptions({ ...options, fill: newColor });
+    }
+  };
 
   return (
     <>
@@ -105,10 +118,10 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
         </aside>
 
         <Flybar flyoutOpen={flyoutOpen} setFlyoutOpen={setFlyoutOpen}>
-          <div className="flex gap-1 flex-col">
+          <div className="flex gap-2 flex-col">
             <p className="text-xs text-muted-foreground">Stroke Width</p>
             <div className="flex gap-2">
-              {STROKE_WIDTHS.map((width) => (<Button variant={"outline"} className={`w-8 h-8 ${options.strokeWidth == width.value ? ("bg-accent") : ("")}`} onClick={() => { setOptions({ ...options, strokeWidth: width.value }) }}>{width.label}</Button>))}
+              {STROKE_WIDTHS.map((width) => (<Button key={width.id} variant={"outline"} className={`w-8 h-8 ${options.strokeWidth == width.value ? ("bg-accent") : ("")}`} onClick={() => { setOptions({ ...options, strokeWidth: width.value }) }}>{width.label}</Button>))}
             </div>
           </div>
 
@@ -131,38 +144,61 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
           </div>
 
           <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center">
+            {/* 4. MODE TOGGLE: BORDER vs FILL */}
+            <div className="flex gap-2 items-center">
               <p className="text-xs text-muted-foreground">Color</p>
-              <div className="text-[10px] font-mono text-gray-500"></div>
+              <Button
+                variant={activeColorMode === 'border' ? "secondary" : "outline"}
+                onClick={() => { setActiveColorMode("border") }}
+                className={`h-6 text-xs ${activeColorMode === 'border' ? "bg-blue-100 text-blue-600 border-blue-200" : "text-muted-foreground"}`}
+              >
+                Border
+              </Button>
+              <Button
+                variant={activeColorMode === 'fill' ? "secondary" : "outline"}
+                onClick={() => { setActiveColorMode("fill") }}
+                className={`h-6 text-xs ${activeColorMode === 'fill' ? "bg-blue-100 text-blue-600 border-blue-200" : "text-muted-foreground"}`}
+              >
+                Fill
+              </Button>
             </div>
 
             {/* Preset Grid */}
             <div className="grid grid-cols-6 gap-2">
+              {/* 5. TRANSPARENT OPTION (Essential for Fill) */}
+              <button
+                onClick={() => handleColorChange('transparent')}
+                className={`w-6 h-6 rounded-full border flex items-center justify-center bg-white ${activeColorValue === 'transparent' ? "ring-2 ring-offset-1 ring-blue-500 border-blue-500" : "border-gray-200"}`}
+                title="Transparent"
+              >
+                {/* Red diagonal line to indicate 'no color' */}
+                <div className="w-full h-px bg-red-400 rotate-45 scale-125" />
+              </button>
+
               {COLORS.map((c) => (
                 <button
                   key={c}
-                  onClick={() => { setOptions({ ...options, strokeColor: c }) }}
-                  className={`w-6 h-6 rounded-full ${options.strokeColor === c ? "scale-110 ring-muted-foreground/25 ring-2 ring-offset-1" : ""}`}
+                  onClick={() => handleColorChange(c)}
+                  className={`w-6 h-6 rounded-full border border-black/5 ${activeColorValue === c ? "scale-110 ring-blue-500/50 ring-2 ring-offset-1" : ""}`}
                   style={{ backgroundColor: c }}
-
                 />
               ))}
             </div>
+
             <div className="flex justify-between items-center gap-2 mt-1 mr-2">
               <p className="text-xs text-muted-foreground">Hex</p>
               <Input
                 className="h-7 font-mono uppercase text-xs"
-                value={options.strokeColor}
-                onChange={(e) => setOptions({ ...options, strokeColor: e.target.value })}
+                // 6. Bind Input to current mode's value
+                value={activeColorValue === 'transparent' ? '' : activeColorValue}
+                onChange={(e) => handleColorChange(e.target.value)}
                 maxLength={7}
-                placeholder="#000000"
+                placeholder={activeColorMode === 'fill' ? "None" : "#000000"}
               />
             </div>
           </div>
 
         </Flybar>
-
-
       </div>
 
       {/* MOBILE BOTTOM BAR */}

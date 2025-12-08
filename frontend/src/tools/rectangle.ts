@@ -1,10 +1,9 @@
-// src/tools/rectangle.ts
 import type { ToolLogic } from "./types";
 
 export const RectangleTool: ToolLogic = {
     onDown: (x, y, options) => {
         return {
-            type: "rect", // <--- ADD THIS
+            type: "rect",
             startX: x,
             startY: y,
             x,
@@ -14,6 +13,8 @@ export const RectangleTool: ToolLogic = {
             strokeColor: options.strokeColor,
             strokeWidth: options.strokeWidth,
             strokeType: options.strokeType,
+            // Use the option if it exists, otherwise transparent
+            fill: options.fill || "transparent",
         };
     },
 
@@ -38,7 +39,8 @@ export const RectangleTool: ToolLogic = {
             y: currentData.y,
             width: currentData.width,
             height: currentData.height,
-            fill: "transparent",
+            // --- FIX HERE: Use the fill from the drawing data ---
+            fill: currentData.fill,
             strokeColor: currentData.strokeColor,
             strokeWidth: currentData.strokeWidth,
             strokeType: currentData.strokeType,

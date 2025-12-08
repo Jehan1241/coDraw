@@ -13,12 +13,13 @@ export type ToolOptions = {
     strokeType?: 'normal' | 'wobbly' | 'dashed' | 'dotted';
     strokeColor?: string;
     strokeWidth?: number;
+    fill?: string;
 };
 
 export function BoardPage() {
     const [tool, setTool] = useState<Tool>('select');
     //save from last time in localstorage and load if there
-    const [options, setOptions] = useState<ToolOptions>({ strokeType: 'normal', strokeColor: '#000000', strokeWidth: 1 });
+    const [options, setOptions] = useState<ToolOptions>({ strokeType: 'normal', strokeColor: '#000000', strokeWidth: 1, fill: "transparent" });
     const { boardId } = useParams();
     const navigate = useNavigate();
 

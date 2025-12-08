@@ -15,7 +15,7 @@ export function Flybar({ flyoutOpen, setFlyoutOpen, children }: FlybarProps) {
             ${flyoutOpen ? "w-72 -translate-x-3" : "w-2 -translate-x-3"}`}
             >
                 {/* Inner Content (Fades out when closed) */}
-                <div className={`w-full p-2 pl-9 overflow-hidden flex flex-col gap-3 transition-opacity duration-200 ${flyoutOpen ? "opacity-100 delay-100" : "opacity-0"}`}>
+                <div className={`w-full p-2 pl-9 overflow-hidden flex flex-col gap-3 h-full justify-around transition-opacity duration-200 ${flyoutOpen ? "opacity-100 delay-100" : "opacity-0"}`}>
                     {children}
                 </div>
 

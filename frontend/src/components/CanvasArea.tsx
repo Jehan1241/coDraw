@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { Stage, Layer, Line, Rect } from "react-konva";
+import { useEffect, useRef, useState } from "react";
+import { Stage, Layer, Line, Rect, Transformer } from "react-konva";
 import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { Cursor } from "@/components/ui/cursor";
 import { BoardStorage } from "../utils/boardStorage";
@@ -30,6 +30,8 @@ const getDashArray = (type?: string, width?: number) => {
 
 export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: CanvasAreaProps) {
   const stageRef = useRef<any>(null);
+  const transformerRef = useRef<any>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const saveThumbnail = () => {
     if (!stageRef.current) return;
@@ -46,11 +48,26 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
   const { stageSize, containerRef } = useCanvasSize();
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = useWhiteboard({ boardId, onActiveUsersChange });
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
-  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options })
+  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedId })
+
+  useEffect(() => {
+    if (!transformerRef.current || !stageRef.current) return;
+
+    transformerRef.current.nodes([]);
+
+    if (selectedId) {
+      const node = stageRef.current.findOne("#" + selectedId);
+      if (node) {
+        transformerRef.current.nodes([node]);
+      }
+    }
+
+    transformerRef.current.getLayer()?.batchDraw();
+  }, [selectedId, syncedShapes]);
+
 
 
   const ERASER_SCREEN_SIZE = 15;
-
 
   const renderShape = (shape: any, extraProps: any = {}) => {
     const hitWidth = Math.max(
@@ -58,8 +75,31 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
       ERASER_SCREEN_SIZE / viewport.scale
     );
 
+    const isSelected = selectedId === shape.id;
+
+    const handleTransformEnd = (e: any) => {
+      if (!yjsShapesMap) return;
+      const node = e.target;
+      yjsShapesMap.set(shape.id, {
+        ...shape,
+        x: node.x(),
+        y: node.y(),
+        rotation: node.rotation(),
+        scaleX: node.scaleX(),
+        scaleY: node.scaleY(),
+      });
+    };
+
+    const handleDragEnd = (e: any) => {
+      if (!yjsShapesMap) return;
+      yjsShapesMap.set(shape.id, {
+        ...shape,
+        x: e.target.x(),
+        y: e.target.y(),
+      });
+    };
+
     const commonProps = {
-      key: shape.id || 'temp',
       id: shape.id,
       points: shape.points,
       stroke: shape.strokeColor || "black",
@@ -68,6 +108,9 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
       lineCap: "round" as const,
       lineJoin: "round" as const,
       listening: true,
+      draggable: tool === 'select' && isSelected, // Only draggable if selected
+      onDragEnd: handleDragEnd,
+      onTransformEnd: handleTransformEnd,
       ...extraProps
     };
 
@@ -91,6 +134,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
     if (shape.strokeType === 'wobbly' && shape.points) {
       return (
         <WobblyLine
+          key={shape.id || 'temp'}
           {...commonProps}
           color={shape.strokeColor || "black"}
           width={shape.strokeWidth || 2}
@@ -101,6 +145,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
     if (shape.points) {
       return (
         <Line
+          key={shape.id || 'temp'} // <--- Here
           {...commonProps}
           dash={getDashArray(shape.strokeType, shape.strokeWidth)}
           tension={0.5}
@@ -166,6 +211,14 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
               color={cursor.color}
             />
           ))}
+          <Transformer
+            ref={transformerRef}
+            boundBoxFunc={(oldBox, newBox) => {
+              // Prevent shrinking below 5px
+              if (newBox.width < 5 || newBox.height < 5) return oldBox;
+              return newBox;
+            }}
+          />
         </Layer>
       </Stage>
 

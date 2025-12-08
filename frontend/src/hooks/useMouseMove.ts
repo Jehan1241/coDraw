@@ -17,41 +17,54 @@ interface useMouseMoveProps {
         scale: number;
     }>>,
     yjsShapesMap: YMap<SyncedShape> | null
+    setSelectedId: (id: string | null) => void;
 }
 
 
-export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options }: useMouseMoveProps) {
+export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedId }: useMouseMoveProps) {
 
     const [currentShapeData, setCurrentShapeData] = useState<CurrentShapeData | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
 
 
-
     const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
-        const logic = TOOLS[tool]
-        if (!logic || e.target !== e.target.getStage() || !yjsShapesMap) return;
+        const logic = TOOLS[tool];
+        if (!logic || !yjsShapesMap) return;
+
         const stage = e.target.getStage();
         const pos = stage?.getRelativePointerPosition();
-        if (pos) {
+        const pointerPos = stage?.getPointerPosition();
+
+        if (pos && stage) {
             setIsDrawing(true);
-            const newData = logic.onDown(pos.x, pos.y, options);
+            const context: ToolInteractionContext = {
+                stage,
+                yjsShapesMap,
+                saveThumbnail,
+                pointerPos: pointerPos || null,
+                setSelectedId,
+                target: e.target as any,
+            };
+
+            const newData = logic.onDown(pos.x, pos.y, options, context);
             setCurrentShapeData(newData);
         }
     };
 
     const handleMouseMove = (e: KonvaEventObject<MouseEvent>) => {
-        const logic = TOOLS[tool]
+        const logic = TOOLS[tool];
         if (!isDrawing || !logic || !yjsShapesMap || !currentShapeData) return;
+
         const stage = e.target.getStage();
         const pos = stage?.getRelativePointerPosition();
-        const pointerPos = stage?.getPointerPosition();
 
         if (pos && stage) {
             const context: ToolInteractionContext = {
                 stage,
                 yjsShapesMap,
                 saveThumbnail,
-                pointerPos: pointerPos || null
+                pointerPos: stage.getPointerPosition() || null,
+                setSelectedId,
             };
             const newData = logic.onMove(pos.x, pos.y, currentShapeData, context);
             setCurrentShapeData(newData);

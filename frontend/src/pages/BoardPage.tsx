@@ -1,26 +1,30 @@
 // src/pages/BoardPage.tsx
 
 import { useParams, useNavigate } from 'react-router-dom';
-// 1. FIX: Import ActiveUser type (assuming it's exported from Header or Canvas)
-// If it's not exported, we can define it here or import from where you defined it.
-import { BoardHeader, type ActiveUser } from '@/components/ui/BoardHeader';
-import { Sidebar } from '@/components/ui/Sidebar';
-import { CanvasArea } from '@/components/ui/CanvasArea';
+import { BoardHeader, type ActiveUser } from '@/components/BoardHeader';
+import { Sidebar } from '@/components/sidebar/Sidebar';
+import { CanvasArea } from '@/components/CanvasArea';
 import { useState, useEffect } from 'react';
 import { BoardProvider } from '@/contexts/BoardContext';
 import { BoardStorage } from "@/utils/boardStorage";
 
-export type Tool = "select" | "pencil" | "rectangle";
+export type Tool = "select" | "pencil" | "rectangle" | "eraser" | "pan";
+export type ToolOptions = {
+    strokeType?: 'normal' | 'wobbly' | 'dashed' | 'dotted';
+    strokeColor?: string;
+    strokeWidth?: number;
+    fill?: string;
+};
 
 export function BoardPage() {
     const [tool, setTool] = useState<Tool>('select');
+    //save from last time in localstorage and load if there
+    const [options, setOptions] = useState<ToolOptions>({ strokeType: 'normal', strokeColor: '#000000', strokeWidth: 1, fill: "transparent" });
     const { boardId } = useParams();
     const navigate = useNavigate();
 
-    // 2. NEW: State to lift the user list up
     const [activeUsers, setActiveUsers] = useState<ActiveUser[]>([]);
 
-    // Auto-Register Board in History
     useEffect(() => {
         if (boardId) {
             BoardStorage.update(boardId, {});
@@ -35,16 +39,12 @@ export function BoardPage() {
     return (
         <BoardProvider boardId={boardId}>
             <div className="w-full h-screen bg-gray-50 overflow-hidden relative">
-
-                {/* 3. FIX: Pass the user list to the Header */}
                 <BoardHeader activeUsers={activeUsers} />
-
-                <Sidebar tool={tool} setTool={setTool} />
-
+                <Sidebar tool={tool} setTool={setTool} options={options} setOptions={setOptions} />
                 <main className="absolute inset-0 w-full h-full z-0">
-                    {/* 4. FIX: Pass the setter to the Canvas */}
                     <CanvasArea
                         tool={tool}
+                        options={options}
                         boardId={boardId}
                         onActiveUsersChange={setActiveUsers}
                     />

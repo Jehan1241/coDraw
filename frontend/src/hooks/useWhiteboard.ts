@@ -3,7 +3,7 @@ import { HocuspocusProvider } from "@hocuspocus/provider";
 import { useEffect, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
-import type { ActiveUser } from "@/components/ui/BoardHeader";
+import type { ActiveUser } from "@/components/BoardHeader";
 
 interface CursorData {
   x: number;
@@ -14,9 +14,32 @@ interface CursorData {
 
 export type SyncedShape = {
   id: string;
-  type: "line";
-  points: number[];
+  type: "line" | "rect";
+  // Line props
+  points?: number[];
+  strokeColor?: string;
+  strokeWidth?: number;
+  strokeType?: string
+  // Rect props
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  fill?: string;
 };
+
+
+export interface GhostShapeData {
+  type?: string;
+  points?: number[]; // Make optional
+  x?: number;        // Add x
+  y?: number;        // Add y
+  width?: number;    // Add width
+  height?: number;   // Add height
+  strokeColor?: string;
+  strokeWidth?: number;
+  strokeType?: string;
+}
 
 function throttle(fn: (...args: any[]) => void, delay: number) {
   let timer: number | null = null;
@@ -48,10 +71,10 @@ export function useWhiteboard({
 
   const providerRef = useRef<HocuspocusProvider | null>(null);
   const throttledSetAwareness = useRef(
-    throttle((x: number | null, y: number | null, points: number[] | null) => {
+    throttle((x: number | null, y: number | null, shapeData: GhostShapeData | null) => {
       const payload: any = {};
       if (x !== null && y !== null) payload.cursor = { x, y };
-      if (points) payload.drawing = points;
+      if (shapeData) payload.drawing = shapeData;
       else payload.drawing = null;
 
       if (Object.keys(payload).length > 0) {
@@ -111,7 +134,7 @@ export function useWhiteboard({
     null,
   );
   const [syncedShapes, setSyncedShapes] = useState<SyncedShape[]>([]);
-  const [remoteLines, setRemoteLines] = useState(new Map<number, number[]>());
+  const [remoteLines, setRemoteLines] = useState(new Map<number, GhostShapeData>());
 
   useEffect(() => {
     const ydoc = new Y.Doc();
@@ -144,7 +167,7 @@ export function useWhiteboard({
 
     const onAwarenessUpdate = () => {
       const newCursors = new Map<number, CursorData>();
-      const newRemoteLines = new Map<number, number[]>();
+      const newRemoteLines = new Map<number, GhostShapeData>();
       const activeUsersList: ActiveUser[] = [];
 
       if (!provider.awareness) return;
@@ -170,7 +193,7 @@ export function useWhiteboard({
                 color: state.user.color,
               });
             }
-            if (state.user.drawing && state.user.drawing.length > 0) {
+            if (state.user.drawing) {
               newRemoteLines.set(clientID, state.user.drawing);
             }
           }

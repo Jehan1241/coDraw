@@ -41,11 +41,17 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
   return (
     <>
       {/* --- LEFT ISLAND: Navigation & Title --- */}
-      <div className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-sm border">
+      <div className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-white p-1.5 rounded-xl shadow-sm border border-gray-200">
+
+        {/* CoDraw Badge - Floating on the top edge */}
+        <div className="absolute -top-2.5 left-3 bg-zinc-900 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-full border-2 border-white shadow-sm z-50 pointer-events-none select-none tracking-widest uppercase">
+          CoDraw
+        </div>
+
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 rounded-lg"
+          className="h-8 w-8 rounded-lg hover:bg-gray-100 text-gray-600"
           onClick={() => navigate("/")}
         >
           <ArrowLeft className="h-4 w-4" />
@@ -55,7 +61,7 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
 
         {isEditingBoardName ? (
           <Input
-            className="h-7 w-48 text-sm font-medium border-none shadow-none focus-visible:ring-1"
+            className="h-7 w-48 text-sm font-medium border-none shadow-none focus-visible:ring-0 px-2 text-gray-900 placeholder:text-gray-400"
             value={tempBoardName}
             onChange={(e) => setTempBoardName(e.target.value)}
             onBlur={handleBoardNameSave}
@@ -64,7 +70,7 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
           />
         ) : (
           <h1
-            className="text-sm font-medium text-gray-700 px-2 py-1 rounded-md hover:bg-gray-100 cursor-pointer transition-colors max-w-[200px] truncate"
+            className="text-sm font-medium text-gray-700 px-2 py-1 rounded-md hover:bg-gray-100 cursor-pointer transition-colors max-w-[200px] truncate select-none"
             onClick={() => setIsEditingBoardName(true)}
             title="Rename Board"
           >

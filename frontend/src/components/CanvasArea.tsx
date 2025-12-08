@@ -80,14 +80,38 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
     const handleTransformEnd = (e: any) => {
       if (!yjsShapesMap) return;
       const node = e.target;
-      yjsShapesMap.set(shape.id, {
+
+      const baseAttrs = {
         ...shape,
         x: node.x(),
         y: node.y(),
         rotation: node.rotation(),
-        scaleX: node.scaleX(),
-        scaleY: node.scaleY(),
-      });
+      };
+
+      // 1. Lines strategy: Keep points as is, save scale
+      if (shape.type === 'line' || shape.points) {
+        yjsShapesMap.set(shape.id, {
+          ...baseAttrs,
+          scaleX: node.scaleX(),
+          scaleY: node.scaleY(),
+        });
+      }
+      // 2. Rects strategy: Normalize scale to 1, save new width/height
+      else {
+        const scaleX = node.scaleX();
+        const scaleY = node.scaleY();
+
+        node.scaleX(1);
+        node.scaleY(1);
+
+        yjsShapesMap.set(shape.id, {
+          ...baseAttrs,
+          width: Math.max(5, node.width() * scaleX),
+          height: Math.max(5, node.height() * scaleY),
+          scaleX: 1,
+          scaleY: 1,
+        });
+      }
     };
 
     const handleDragEnd = (e: any) => {
@@ -101,14 +125,18 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
 
     const commonProps = {
       id: shape.id,
-      points: shape.points,
+      x: shape.x || 0,
+      y: shape.y || 0,
+      rotation: shape.rotation || 0,
+      scaleX: shape.scaleX || 1,
+      scaleY: shape.scaleY || 1,
       stroke: shape.strokeColor || "black",
       strokeWidth: shape.strokeWidth || 2,
       hitStrokeWidth: hitWidth,
       lineCap: "round" as const,
       lineJoin: "round" as const,
       listening: true,
-      draggable: tool === 'select' && isSelected, // Only draggable if selected
+      draggable: tool === 'select' && isSelected,
       onDragEnd: handleDragEnd,
       onTransformEnd: handleTransformEnd,
       ...extraProps
@@ -119,23 +147,22 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
         <Rect
           key={shape.id || 'temp'}
           {...commonProps}
-          x={shape.x}
-          y={shape.y}
           width={shape.width}
           height={shape.height}
           fill={shape.fill || "transparent"}
-          stroke={shape.strokeColor || "black"}
           dash={getDashArray(shape.strokeType, shape.strokeWidth)}
           cornerRadius={shape.strokeType === 'wobbly' ? 10 : 0}
         />
       );
     }
 
+    // FIX: Ensure points is never undefined with (shape.points || [])
     if (shape.strokeType === 'wobbly' && shape.points) {
       return (
         <WobblyLine
           key={shape.id || 'temp'}
           {...commonProps}
+          points={shape.points || []}
           color={shape.strokeColor || "black"}
           width={shape.strokeWidth || 2}
         />
@@ -145,16 +172,16 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
     if (shape.points) {
       return (
         <Line
-          key={shape.id || 'temp'} // <--- Here
+          key={shape.id || 'temp'}
           {...commonProps}
+          points={shape.points || []}
           dash={getDashArray(shape.strokeType, shape.strokeWidth)}
           tension={0.5}
         />
       );
     }
-    return null
+    return null;
   };
-
 
 
   return (

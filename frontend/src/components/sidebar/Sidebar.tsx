@@ -21,10 +21,10 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
       variant={tool === targetTool ? "secondary" : "ghost"}
       size="icon"
       onClick={() => setTool(targetTool)}
-      className={tool === targetTool ? "bg-blue-100 text-blue-600 hover:bg-blue-200" : "text-gray-500"}
+      className={tool === targetTool ? "bg-accent" : "text-black/60"}
     >
       <Icon className="w-5 h-5" />
-    </Button>
+    </Button >
   );
 
   // 1. STATE: Track if we are editing the Border color or Fill color
@@ -148,16 +148,16 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
             <div className="flex gap-2 items-center">
               <p className="text-xs text-muted-foreground">Color</p>
               <Button
-                variant={activeColorMode === 'border' ? "secondary" : "outline"}
+                variant={"outline"}
                 onClick={() => { setActiveColorMode("border") }}
-                className={`h-6 text-xs ${activeColorMode === 'border' ? "bg-blue-100 text-blue-600 border-blue-200" : "text-muted-foreground"}`}
+                className={`h-6 text-xs ${activeColorMode === 'border' ? "bg-accent" : ""}`}
               >
                 Border
               </Button>
               <Button
-                variant={activeColorMode === 'fill' ? "secondary" : "outline"}
+                variant={"outline"}
                 onClick={() => { setActiveColorMode("fill") }}
-                className={`h-6 text-xs ${activeColorMode === 'fill' ? "bg-blue-100 text-blue-600 border-blue-200" : "text-muted-foreground"}`}
+                className={`h-6 text-xs ${activeColorMode === 'fill' ? "bg-accent" : ""}`}
               >
                 Fill
               </Button>

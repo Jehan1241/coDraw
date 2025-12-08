@@ -10,6 +10,7 @@ import { Minus, Plus, RefreshCcw } from "lucide-react";
 import { useZoom } from "@/hooks/useZoom";
 import { useMouseMove } from "@/hooks/useMouseMove";
 import { WobblyLine } from "./ui/WobblyLine";
+import { WelcomeScreen } from "./WelcomeScreen";
 
 
 interface CanvasAreaProps {
@@ -114,7 +115,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-gray-200"
+      className="w-full h-full bg-white"
       style={{ cursor: cursorStyle }}
     >
 
@@ -167,6 +168,8 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
           ))}
         </Layer>
       </Stage>
+
+      {syncedShapes.length === 0 && !currentShapeData && <WelcomeScreen />}
       <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-white p-2 rounded-lg shadow-md border z-50">
         <button
           onClick={() => zoomToCenter(-1)}

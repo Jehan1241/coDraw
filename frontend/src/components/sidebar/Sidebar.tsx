@@ -8,6 +8,7 @@ import { Flybar } from "./Flybar";
 import { Input } from "../ui/input";
 import { getDisplayColor } from "../CanvasArea";
 import { useTheme } from "../ui/theme-provider";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface SidebarProps {
   tool: Tool;
@@ -19,18 +20,28 @@ interface SidebarProps {
 }
 
 
+const toolTipText = { select: "Select", pan: "Pan", rectangle: "Rectangle", pencil: "Pencil", eraser: "Eraser" }
+
+
 
 export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: SidebarProps) {
 
   const ToolButton = ({ targetTool, icon: Icon }: { targetTool: Tool, icon: any }) => (
-    <Button
-      variant={tool === targetTool ? "secondary" : "ghost"}
-      size="icon"
-      onClick={() => setTool(targetTool)}
-      className={tool === targetTool ? "bg-accent" : "text-foreground /60"}
-    >
-      <Icon className="w-5 h-5" />
-    </Button >
+    <Tooltip delayDuration={500}>
+      <TooltipTrigger asChild>
+        <Button
+          variant={tool === targetTool ? "secondary" : "ghost"}
+          size="icon"
+          onClick={() => setTool(targetTool)}
+          className={tool === targetTool ? "bg-accent" : "text-foreground /60"}
+        >
+          <Icon className="w-5 h-5" />
+        </Button >
+      </TooltipTrigger>
+      <TooltipContent side="right">
+        <p>{toolTipText[targetTool]}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 
 
@@ -116,13 +127,29 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: 
           <ToolButton targetTool="pencil" icon={Pencil} />
           <ToolButton targetTool="eraser" icon={Eraser} />
 
+          <Tooltip delayDuration={500}>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onUndo}>
+                <Undo2 className="w-5 h-5 text-gray-300" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Undo</p>
+            </TooltipContent>
+          </Tooltip>
 
-          <Button variant="ghost" size="icon" onClick={onUndo}>
-            <Undo2 className="w-5 h-5 text-gray-300" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={onRedo}>
-            <Redo2 className="w-5 h-5 text-gray-300" />
-          </Button>
+          <Tooltip delayDuration={500}>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onRedo}>
+                <Redo2 className="w-5 h-5 text-gray-300" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>Redo</p>
+            </TooltipContent>
+          </Tooltip>
+
+
         </aside>
 
         <Flybar flyoutOpen={flyoutOpen} setFlyoutOpen={setFlyoutOpen}>

@@ -45,6 +45,42 @@ export function getCursorStyle(theme: string, tool: string) {
     return `url("data:image/svg+xml;utf8,${selectSvg}") 3 3, auto`;
   }
 
-  if (tool === "pan") return "grab";
+  if (tool === "pan") {
+    const panSvg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${cursorColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-hand-icon lucide-hand"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/></svg>`)
+    return `url("data:image/svg+xml;utf8,${panSvg}") 12 12, auto`;
+  }
+
+  if (tool === "rectangle") {
+    const rectSvg = encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg"
+         width="45" height="45" viewBox="0 0 24 24"
+         fill="none" stroke="${cursorColor}" stroke-width="1.2"
+         stroke-linecap="round" stroke-linejoin="round">
+
+      <!-- Square with bottom-left corner broken -->
+      <!-- Left vertical edge (broken near bottom) -->
+      <line x1="6" y1="4" x2="6" y2="12"/>
+
+      <!-- Top -->
+      <line x1="6" y1="4" x2="20" y2="4"/>
+
+      <!-- Right side -->
+      <line x1="20" y1="4" x2="20" y2="18"/>
+
+      <!-- Bottom (broken near left) -->
+      <line x1="13" y1="18" x2="20" y2="18"/>
+
+      <!-- Crosshair centered at bottom-left -->
+      <!-- Horizontal -->
+      <line x1="3" y1="18" x2="9" y2="18"/>
+
+      <!-- Vertical -->
+      <line x1="6" y1="15" x2="6" y2="21"/>
+
+    </svg>
+  `);
+
+    return `url("data:image/svg+xml;utf8,${rectSvg}") 10 33, crosshair`;
+  }
   return "default";
 };

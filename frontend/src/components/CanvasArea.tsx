@@ -19,7 +19,7 @@ interface CanvasAreaProps {
   tool: Tool;
   options: ToolOptions;
   boardId: string;
-  whiteboard: ReturnType<typeof useWhiteboard>; // <--- New prop
+  whiteboard: ReturnType<typeof useWhiteboard>;
 }
 
 export const getDisplayColor = (color: string | undefined, theme: string | undefined) => {
@@ -43,11 +43,7 @@ const getDashArray = (type?: string, width?: number) => {
 export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaProps) {
   const stageRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
   const { theme } = useTheme();
-
-
 
   const saveThumbnail = () => {
     if (!stageRef.current) return;
@@ -63,29 +59,27 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
   const resizeCursor = getResizeCursor(theme);
   const [forceResizeCursor, setForceResizeCursor] = useState(false);
 
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
 
   const { stageSize, containerRef } = useCanvasSize();
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
-  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedId })
+  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedIds, setSelectionBox, selectedIds });
 
   useEffect(() => {
     if (!transformerRef.current || !stageRef.current) return;
-
     transformerRef.current.nodes([]);
-
-    if (selectedId) {
-      const node = stageRef.current.findOne("#" + selectedId);
-      if (node) {
-        transformerRef.current.nodes([node]);
-      }
+    if (selectedIds.size > 0) {
+      const nodes = Array.from(selectedIds)
+        .map((id) => stageRef.current.findOne("#" + id))
+        .filter((node) => node !== undefined);
+      transformerRef.current.nodes(nodes);
     }
-
     transformerRef.current.getLayer()?.batchDraw();
-  }, [selectedId, syncedShapes]);
+  }, [selectedIds, syncedShapes]);
 
   const ERASER_SCREEN_SIZE = 30;
-
 
   const renderShape = (shape: any, extraProps: any = {}) => {
     const hitWidth = Math.max(
@@ -98,7 +92,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
       ? "transparent"
       : getDisplayColor(shape.fill, theme);
 
-    const isSelected = selectedId === shape.id;
+    const isSelected = selectedIds.has(shape.id);
 
     const handleTransformEnd = (e: any) => {
       if (!yjsShapesMap) return;
@@ -111,7 +105,6 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
         rotation: node.rotation(),
       };
 
-      // 1. Lines strategy: Keep points as is, save scale
       if (shape.type === 'line' || shape.points) {
         yjsShapesMap.set(shape.id, {
           ...baseAttrs,
@@ -119,7 +112,6 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
           scaleY: node.scaleY(),
         });
       }
-      // 2. Rects strategy: Normalize scale to 1, save new width/height
       else {
         const scaleX = node.scaleX();
         const scaleY = node.scaleY();
@@ -150,6 +142,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
       id: shape.id,
       x: shape.x || 0,
       y: shape.y || 0,
+      name: "whiteboard-object",
       rotation: shape.rotation || 0,
       scaleX: shape.scaleX || 1,
       scaleY: shape.scaleY || 1,
@@ -203,7 +196,6 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
     }
     return null;
   };
-
 
   return (
     <div
@@ -266,6 +258,18 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
               color={cursor.color}
             />
           ))}
+          {selectionBox && (
+            <Rect
+              x={selectionBox.x}
+              y={selectionBox.y}
+              width={selectionBox.width}
+              height={selectionBox.height}
+              fill="rgba(0, 161, 255, 0.3)"
+              stroke="#00a1ff"
+              strokeWidth={1}
+              listening={false}
+            />
+          )}
           <Transformer
             ref={transformerRef}
             rotateAnchorCursor={rotateCursor}

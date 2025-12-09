@@ -19,7 +19,7 @@ export type ToolOptions = {
 
 export function BoardPage() {
     const [tool, setTool] = useState<Tool>('select');
-    //save from last time in localstorage and load if there
+
     const [options, setOptions] = useState<ToolOptions>({ strokeType: 'normal', strokeColor: '#000000', strokeWidth: 1, fill: "transparent" });
     const { boardId } = useParams();
     const navigate = useNavigate();
@@ -28,25 +28,8 @@ export function BoardPage() {
 
     const whiteboard = useWhiteboard({
         boardId: boardId!,
-        onActiveUsersChange: setActiveUsers
+        onActiveUsersChange: setActiveUsers,
     });
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const isCmdOrCtrl = e.ctrlKey || e.metaKey;
-            if (isCmdOrCtrl && e.key === 'z') {
-                e.preventDefault();
-                if (e.shiftKey) whiteboard.redo();
-                else whiteboard.undo();
-            }
-            if (isCmdOrCtrl && e.key === 'y') {
-                e.preventDefault();
-                whiteboard.redo();
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [whiteboard]);
 
     useEffect(() => {
         if (boardId) {
@@ -63,7 +46,7 @@ export function BoardPage() {
         <BoardProvider boardId={boardId}>
             <div className="w-full h-screen bg-gray-50 overflow-hidden relative">
                 <BoardHeader activeUsers={activeUsers} />
-                <Sidebar onUndo={whiteboard.undo} onRedo={whiteboard.redo} tool={tool} setTool={setTool} options={options} setOptions={setOptions} />
+                <Sidebar onUndo={whiteboard.undo} onRedo={whiteboard.redo} tool={tool} setTool={setTool} options={options} setOptions={setOptions} canUndo={whiteboard.canUndo} canRedo={whiteboard.canRedo} />
                 <main className="absolute inset-0 w-full h-full z-0">
                     <CanvasArea
                         tool={tool}

@@ -62,11 +62,47 @@ export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardPr
   const { user } = useUser();
   const userRef = useRef(user);
 
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
   const undoManagerRef = useRef<Y.UndoManager | null>(null);
 
   useEffect(() => {
     userRef.current = user;
   }, [user]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+      if (isCmdOrCtrl && e.key === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) undoManagerRef.current?.redo();
+        else undoManagerRef.current?.undo();
+      }
+      if (isCmdOrCtrl && e.key === 'y') {
+        e.preventDefault();
+        undoManagerRef.current?.redo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undoManagerRef.current]);
+
+  useEffect(() => {
+    const manager = undoManagerRef.current;
+    if (!manager) return;
+    const updateStack = () => {
+      setCanUndo(manager.undoStack.length > 0);
+      setCanRedo(manager.redoStack.length > 0);
+    };
+    manager.on('stack-item-added', updateStack);
+    manager.on('stack-item-popped', updateStack);
+    updateStack();
+    return () => {
+      manager.off('stack-item-added', updateStack);
+      manager.off('stack-item-popped', updateStack);
+    };
+  }, [undoManagerRef.current]);
 
   const providerRef = useRef<HocuspocusProvider | null>(null);
   const throttledSetAwareness = useRef(
@@ -220,5 +256,7 @@ export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardPr
     throttledSetAwareness,
     undo: () => undoManagerRef.current?.undo(),
     redo: () => undoManagerRef.current?.redo(),
+    canUndo,
+    canRedo,
   };
 }

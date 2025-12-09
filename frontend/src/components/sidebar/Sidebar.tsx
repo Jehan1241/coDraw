@@ -17,6 +17,8 @@ interface SidebarProps {
   setOptions: (opts: ToolOptions) => void;
   onUndo: () => void;
   onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 
@@ -24,7 +26,7 @@ const toolTipText = { select: "Select", pan: "Pan", rectangle: "Rectangle", penc
 
 
 
-export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: SidebarProps) {
+export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo, canRedo, canUndo }: SidebarProps) {
 
   const ToolButton = ({ targetTool, icon: Icon }: { targetTool: Tool, icon: any }) => (
     <Tooltip delayDuration={500}>
@@ -129,8 +131,8 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: 
 
           <Tooltip delayDuration={500}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onUndo}>
-                <Undo2 className="w-5 h-5 text-gray-300" />
+              <Button variant="ghost" size="icon" onClick={onUndo} disabled={!canUndo}>
+                <Undo2 className="w-5 h-5 " />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
@@ -140,8 +142,8 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: 
 
           <Tooltip delayDuration={500}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onRedo}>
-                <Redo2 className="w-5 h-5 text-gray-300" />
+              <Button variant="ghost" size="icon" onClick={onRedo} disabled={!canRedo}>
+                <Redo2 className="w-5 h-5 " />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">

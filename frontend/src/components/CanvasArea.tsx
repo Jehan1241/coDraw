@@ -12,6 +12,7 @@ import { WobblyLine } from "./ui/WobblyLine";
 import { WelcomeScreen } from "./WelcomeScreen";
 import { Button } from "./ui/button";
 import { useTheme } from "./ui/theme-provider";
+import { getCursorStyle } from "@/utils/cursorStyle";
 
 
 interface CanvasAreaProps {
@@ -58,7 +59,8 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
   };
 
 
-  const cursorStyle = tool === "pencil" ? "crosshair" : "default";
+
+  const cursorStyle = getCursorStyle(theme, tool);
 
   const { stageSize, containerRef } = useCanvasSize();
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
@@ -82,7 +84,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
 
 
 
-  const ERASER_SCREEN_SIZE = 15;
+  const ERASER_SCREEN_SIZE = 30;
 
   const renderShape = (shape: any, extraProps: any = {}) => {
     const hitWidth = Math.max(

@@ -1,52 +1,54 @@
 import type { ToolLogic } from "./types";
 
 export const EraserTool: ToolLogic = {
-    // Capture the starting position on Mouse Down
     onDown: (x, y) => ({
         erasing: true,
-        lastPos: { x, y }
+        lastScreenPos: null
     }),
 
-    onMove: (_x, _y, currentData, { stage, yjsShapesMap, saveThumbnail, pointerPos }) => {
-        // Safety checks
-        if (!pointerPos || !yjsShapesMap || !currentData.lastPos) {
+    onMove: (_x, _y, currentData, { stage, yjsShapesMap, saveThumbnail }) => {
+        const currentScreenPos = stage.getPointerPosition();
+
+        if (!currentScreenPos || !yjsShapesMap) {
             return currentData;
         }
 
-        const { lastPos } = currentData;
-        const currentPos = pointerPos;
+        const lastScreenPos = currentData.lastScreenPos || currentScreenPos;
         let didDelete = false;
 
-        // Calculate distance and angle for interpolation
-        const dx = currentPos.x - lastPos.x;
-        const dy = currentPos.y - lastPos.y;
+        const dx = currentScreenPos.x - lastScreenPos.x;
+        const dy = currentScreenPos.y - lastScreenPos.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // Instead of checking once, we check every few pixels along the path.
+        // Check every 5 screen pixels
         const stepSize = 5;
         const steps = Math.ceil(dist / stepSize);
 
         for (let i = 0; i <= steps; i++) {
             const t = steps === 0 ? 1 : i / steps;
-            const checkX = lastPos.x + (dx * t);
-            const checkY = lastPos.y + (dy * t);
+
+            const checkX = lastScreenPos.x + (dx * t);
+            const checkY = lastScreenPos.y + (dy * t);
+
             const shape = stage.getIntersection({ x: checkX, y: checkY });
 
             if (shape && shape.attrs.id) {
                 if (yjsShapesMap.has(shape.attrs.id)) {
                     yjsShapesMap.delete(shape.attrs.id);
+                    shape.visible(false);
                     didDelete = true;
                 }
             }
         }
 
         if (didDelete) {
+            stage.batchDraw();
             saveThumbnail();
         }
 
         return {
             ...currentData,
-            lastPos: { x: currentPos.x, y: currentPos.y }
+            lastScreenPos: currentScreenPos
         };
     },
 

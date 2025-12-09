@@ -14,11 +14,13 @@ interface SidebarProps {
   setTool: (tool: Tool) => void;
   options: ToolOptions;
   setOptions: (opts: ToolOptions) => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
 
 
-export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
+export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: SidebarProps) {
 
   const ToolButton = ({ targetTool, icon: Icon }: { targetTool: Tool, icon: any }) => (
     <Button
@@ -115,10 +117,10 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
           <ToolButton targetTool="eraser" icon={Eraser} />
 
 
-          <Button variant="ghost" size="icon" disabled>
+          <Button variant="ghost" size="icon" onClick={onUndo}>
             <Undo2 className="w-5 h-5 text-gray-300" />
           </Button>
-          <Button variant="ghost" size="icon" disabled>
+          <Button variant="ghost" size="icon" onClick={onRedo}>
             <Redo2 className="w-5 h-5 text-gray-300" />
           </Button>
         </aside>

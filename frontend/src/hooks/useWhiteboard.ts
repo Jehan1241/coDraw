@@ -58,12 +58,11 @@ interface useWhiteboardProps {
   onActiveUsersChange?: (users: ActiveUser[]) => void;
 }
 
-export function useWhiteboard({
-  boardId,
-  onActiveUsersChange,
-}: useWhiteboardProps) {
+export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardProps) {
   const { user } = useUser();
   const userRef = useRef(user);
+
+  const undoManagerRef = useRef<Y.UndoManager | null>(null);
 
   useEffect(() => {
     userRef.current = user;
@@ -139,6 +138,7 @@ export function useWhiteboard({
   useEffect(() => {
     const ydoc = new Y.Doc();
     const yMap = ydoc.getMap<SyncedShape>("shapes");
+    undoManagerRef.current = new Y.UndoManager(yMap);
 
     const localProvider = new IndexeddbPersistence(boardId, ydoc);
     localProvider.on("synced", () => {
@@ -218,5 +218,7 @@ export function useWhiteboard({
     smoothCursors,
     syncedShapes,
     throttledSetAwareness,
+    undo: () => undoManagerRef.current?.undo(),
+    redo: () => undoManagerRef.current?.redo(),
   };
 }

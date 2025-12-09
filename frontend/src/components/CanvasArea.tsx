@@ -19,8 +19,7 @@ interface CanvasAreaProps {
   tool: Tool;
   options: ToolOptions;
   boardId: string;
-  onActiveUsersChange?: (users: ActiveUser[]) => void;
-
+  whiteboard: ReturnType<typeof useWhiteboard>; // <--- New prop
 }
 
 export const getDisplayColor = (color: string | undefined, theme: string | undefined) => {
@@ -41,7 +40,7 @@ const getDashArray = (type?: string, width?: number) => {
   return undefined;
 };
 
-export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: CanvasAreaProps) {
+export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaProps) {
   const stageRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -63,7 +62,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
   const cursorStyle = tool === "pencil" ? "crosshair" : "default";
 
   const { stageSize, containerRef } = useCanvasSize();
-  const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = useWhiteboard({ boardId, onActiveUsersChange });
+  const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
   const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedId })
 

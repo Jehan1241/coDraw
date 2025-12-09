@@ -12,7 +12,7 @@ import { WobblyLine } from "./ui/WobblyLine";
 import { WelcomeScreen } from "./WelcomeScreen";
 import { Button } from "./ui/button";
 import { useTheme } from "./ui/theme-provider";
-import { getCursorStyle } from "@/utils/cursorStyle";
+import { getCursorStyle, getResizeCursor, getRotateCursor } from "@/utils/cursorStyle";
 
 
 interface CanvasAreaProps {
@@ -58,9 +58,11 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
     BoardStorage.update(boardId, { thumbnail: dataURL });
   };
 
-
-
   const cursorStyle = getCursorStyle(theme, tool);
+  const rotateCursor = getRotateCursor(theme);
+  const resizeCursor = getResizeCursor(theme);
+  const [forceResizeCursor, setForceResizeCursor] = useState(false);
+
 
   const { stageSize, containerRef } = useCanvasSize();
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
@@ -82,16 +84,14 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
     transformerRef.current.getLayer()?.batchDraw();
   }, [selectedId, syncedShapes]);
 
-
-
   const ERASER_SCREEN_SIZE = 30;
+
 
   const renderShape = (shape: any, extraProps: any = {}) => {
     const hitWidth = Math.max(
       shape.strokeWidth || 2,
       ERASER_SCREEN_SIZE / viewport.scale
     );
-
 
     const finalStroke = getDisplayColor(shape.strokeColor || "black", theme);
     const finalFill = shape.fill === "transparent"
@@ -178,8 +178,6 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
         />
       );
     }
-
-    // FIX: Ensure points is never undefined with (shape.points || [])
     if (shape.strokeType === 'wobbly' && shape.points) {
       return (
         <WobblyLine
@@ -213,6 +211,15 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
       className="w-full h-full bg-background"
       style={{ cursor: cursorStyle }}
     >
+      {forceResizeCursor && (
+        <style>
+          {`
+            .konvajs-content {
+              cursor: ${resizeCursor} !important;
+            }
+          `}
+        </style>
+      )}
 
       <Stage
         ref={stageRef}
@@ -241,8 +248,6 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
             }
             return null;
           })}
-
-
           {Array.from(remoteLines.entries()).map(([clientID, shapeData]) => (
             renderShape(shapeData, {
               key: `ghost-${clientID}`,
@@ -263,8 +268,17 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
           ))}
           <Transformer
             ref={transformerRef}
+            rotateAnchorCursor={rotateCursor}
+            anchorStyleFunc={(anchor: any) => {
+              if (anchor.hasName('rotater')) return;
+              anchor.on('mouseenter', () => {
+                setForceResizeCursor(true);
+              });
+              anchor.on('mouseleave', () => {
+                setForceResizeCursor(false);
+              });
+            }}
             boundBoxFunc={(oldBox, newBox) => {
-              // Prevent shrinking below 5px
               if (newBox.width < 5 || newBox.height < 5) return oldBox;
               return newBox;
             }}

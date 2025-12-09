@@ -1,7 +1,7 @@
 import type { ToolLogic } from "./types";
 
 export const EraserTool: ToolLogic = {
-    onDown: (x, y) => ({
+    onDown: (_x, _y) => ({
         erasing: true,
         lastScreenPos: null
     }),

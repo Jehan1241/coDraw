@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { Stage, Layer, Line, Rect } from "react-konva";
+import { useEffect, useRef, useState } from "react";
+import { Stage, Layer, Line, Rect, Transformer } from "react-konva";
 import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { Cursor } from "@/components/ui/cursor";
 import { BoardStorage } from "../utils/boardStorage";
@@ -11,15 +11,27 @@ import { useZoom } from "@/hooks/useZoom";
 import { useMouseMove } from "@/hooks/useMouseMove";
 import { WobblyLine } from "./ui/WobblyLine";
 import { WelcomeScreen } from "./WelcomeScreen";
+import { Button } from "./ui/button";
+import { useTheme } from "./ui/theme-provider";
 
 
 interface CanvasAreaProps {
   tool: Tool;
   options: ToolOptions;
   boardId: string;
-  onActiveUsersChange?: (users: ActiveUser[]) => void;
-
+  whiteboard: ReturnType<typeof useWhiteboard>; // <--- New prop
 }
+
+export const getDisplayColor = (color: string | undefined, theme: string | undefined) => {
+  if (!color) return "black";
+  const isDark = theme === "dark" ||
+    (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  if (!isDark) return color;
+  const c = color.toLowerCase();
+  if (c === "black" || c === "#000000") return "#ffffff";
+  if (c === "white" || c === "#ffffff") return "#000000";
+  return color;
+};
 
 const getDashArray = (type?: string, width?: number) => {
   const w = width || 2;
@@ -28,8 +40,14 @@ const getDashArray = (type?: string, width?: number) => {
   return undefined;
 };
 
-export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: CanvasAreaProps) {
+export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaProps) {
   const stageRef = useRef<any>(null);
+  const transformerRef = useRef<any>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const { theme } = useTheme();
+
+
 
   const saveThumbnail = () => {
     if (!stageRef.current) return;
@@ -44,13 +62,28 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
   const cursorStyle = tool === "pencil" ? "crosshair" : "default";
 
   const { stageSize, containerRef } = useCanvasSize();
-  const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = useWhiteboard({ boardId, onActiveUsersChange });
+  const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
-  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options })
+  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedId })
+
+  useEffect(() => {
+    if (!transformerRef.current || !stageRef.current) return;
+
+    transformerRef.current.nodes([]);
+
+    if (selectedId) {
+      const node = stageRef.current.findOne("#" + selectedId);
+      if (node) {
+        transformerRef.current.nodes([node]);
+      }
+    }
+
+    transformerRef.current.getLayer()?.batchDraw();
+  }, [selectedId, syncedShapes]);
+
 
 
   const ERASER_SCREEN_SIZE = 15;
-
 
   const renderShape = (shape: any, extraProps: any = {}) => {
     const hitWidth = Math.max(
@@ -58,16 +91,76 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
       ERASER_SCREEN_SIZE / viewport.scale
     );
 
+
+    const finalStroke = getDisplayColor(shape.strokeColor || "black", theme);
+    const finalFill = shape.fill === "transparent"
+      ? "transparent"
+      : getDisplayColor(shape.fill, theme);
+
+    const isSelected = selectedId === shape.id;
+
+    const handleTransformEnd = (e: any) => {
+      if (!yjsShapesMap) return;
+      const node = e.target;
+
+      const baseAttrs = {
+        ...shape,
+        x: node.x(),
+        y: node.y(),
+        rotation: node.rotation(),
+      };
+
+      // 1. Lines strategy: Keep points as is, save scale
+      if (shape.type === 'line' || shape.points) {
+        yjsShapesMap.set(shape.id, {
+          ...baseAttrs,
+          scaleX: node.scaleX(),
+          scaleY: node.scaleY(),
+        });
+      }
+      // 2. Rects strategy: Normalize scale to 1, save new width/height
+      else {
+        const scaleX = node.scaleX();
+        const scaleY = node.scaleY();
+
+        node.scaleX(1);
+        node.scaleY(1);
+
+        yjsShapesMap.set(shape.id, {
+          ...baseAttrs,
+          width: Math.max(5, node.width() * scaleX),
+          height: Math.max(5, node.height() * scaleY),
+          scaleX: 1,
+          scaleY: 1,
+        });
+      }
+    };
+
+    const handleDragEnd = (e: any) => {
+      if (!yjsShapesMap) return;
+      yjsShapesMap.set(shape.id, {
+        ...shape,
+        x: e.target.x(),
+        y: e.target.y(),
+      });
+    };
+
     const commonProps = {
-      key: shape.id || 'temp',
       id: shape.id,
-      points: shape.points,
-      stroke: shape.strokeColor || "black",
+      x: shape.x || 0,
+      y: shape.y || 0,
+      rotation: shape.rotation || 0,
+      scaleX: shape.scaleX || 1,
+      scaleY: shape.scaleY || 1,
+      stroke: finalStroke || "black",
       strokeWidth: shape.strokeWidth || 2,
       hitStrokeWidth: hitWidth,
       lineCap: "round" as const,
       lineJoin: "round" as const,
       listening: true,
+      draggable: tool === 'select' && isSelected,
+      onDragEnd: handleDragEnd,
+      onTransformEnd: handleTransformEnd,
       ...extraProps
     };
 
@@ -76,23 +169,23 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
         <Rect
           key={shape.id || 'temp'}
           {...commonProps}
-          x={shape.x}
-          y={shape.y}
           width={shape.width}
           height={shape.height}
-          fill={shape.fill || "transparent"}
-          stroke={shape.strokeColor || "black"}
+          fill={finalFill || "transparent"}
           dash={getDashArray(shape.strokeType, shape.strokeWidth)}
           cornerRadius={shape.strokeType === 'wobbly' ? 10 : 0}
         />
       );
     }
 
+    // FIX: Ensure points is never undefined with (shape.points || [])
     if (shape.strokeType === 'wobbly' && shape.points) {
       return (
         <WobblyLine
+          key={shape.id || 'temp'}
           {...commonProps}
-          color={shape.strokeColor || "black"}
+          points={shape.points || []}
+          color={finalStroke || "black"}
           width={shape.strokeWidth || 2}
         />
       );
@@ -101,21 +194,22 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
     if (shape.points) {
       return (
         <Line
+          key={shape.id || 'temp'}
           {...commonProps}
+          points={shape.points || []}
           dash={getDashArray(shape.strokeType, shape.strokeWidth)}
           tension={0.5}
         />
       );
     }
-    return null
+    return null;
   };
-
 
 
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-white"
+      className="w-full h-full bg-background"
       style={{ cursor: cursorStyle }}
     >
 
@@ -128,7 +222,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
         scaleY={viewport.scale}
         x={viewport.x}
         y={viewport.y}
-        draggable={tool == "select"}
+        draggable={tool == "pan"}
         onDragEnd={mouseHandlers.onDragEnd}
         onMouseDown={mouseHandlers.onMouseDown}
         onMouseUp={mouseHandlers.onMouseUp}
@@ -166,40 +260,51 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
               color={cursor.color}
             />
           ))}
+          <Transformer
+            ref={transformerRef}
+            boundBoxFunc={(oldBox, newBox) => {
+              // Prevent shrinking below 5px
+              if (newBox.width < 5 || newBox.height < 5) return oldBox;
+              return newBox;
+            }}
+          />
         </Layer>
       </Stage>
 
       {syncedShapes.length === 0 && !currentShapeData && <WelcomeScreen />}
-      <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-white p-2 rounded-lg shadow-md border z-50">
-        <button
+      <div className="fixed bottom-4 right-4 flex items-center gap-1 bg-background p-2 rounded-lg shadow-md border z-50 select-none">
+        <Button
+          variant={"ghost"}
+          className="h-8 w-8"
           onClick={() => zoomToCenter(-1)}
-          className="p-1 hover:bg-gray-100 rounded"
-          title="Zoom Out (Ctrl+Wheel Down)"
         >
-          <Minus className="w-4 h-4 text-gray-600" />
-        </button>
+          <Minus className="w-4 h-4 text-foreground " />
+        </Button>
 
         <span className="text-xs font-mono w-12 text-center">
           {Math.round(viewport.scale * 100)}%
         </span>
 
-        <button
+        <Button
+          variant={"ghost"}
           onClick={() => zoomToCenter(1)}
-          className="p-1 hover:bg-gray-100 rounded"
-          title="Zoom In (Ctrl+Wheel Up)"
+          className="h-8 w-8"
+
         >
-          <Plus className="w-4 h-4 text-gray-600" />
-        </button>
+          <Plus className="w-4 h-4 text-foreground  " />
+        </Button>
 
-        <div className="w-px h-4 bg-gray-300 mx-1" />
+        <div className="w-px h-4 mx-1" />
 
-        <button
+        <Button
+          variant={"ghost"}
           onClick={() => zoomToCenter(0)}
-          className="p-1 hover:bg-gray-100 rounded"
+          className="h-8 w-8"
+
           title="Reset Zoom"
         >
-          <RefreshCcw className="w-3 h-3 text-gray-500" />
-        </button>
+          <RefreshCcw className="w-3 h-3" />
+        </Button>
       </div>
     </div>
   );

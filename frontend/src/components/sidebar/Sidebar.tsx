@@ -6,30 +6,39 @@ import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { useState } from "react";
 import { Flybar } from "./Flybar";
 import { Input } from "../ui/input";
+import { getDisplayColor } from "../CanvasArea";
+import { useTheme } from "../ui/theme-provider";
 
 interface SidebarProps {
   tool: Tool;
   setTool: (tool: Tool) => void;
   options: ToolOptions;
   setOptions: (opts: ToolOptions) => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
-export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
+
+
+export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: SidebarProps) {
 
   const ToolButton = ({ targetTool, icon: Icon }: { targetTool: Tool, icon: any }) => (
     <Button
       variant={tool === targetTool ? "secondary" : "ghost"}
       size="icon"
       onClick={() => setTool(targetTool)}
-      className={tool === targetTool ? "bg-blue-100 text-blue-600 hover:bg-blue-200" : "text-gray-500"}
+      className={tool === targetTool ? "bg-accent" : "text-foreground /60"}
     >
       <Icon className="w-5 h-5" />
-    </Button>
+    </Button >
   );
+
+
 
   // 1. STATE: Track if we are editing the Border color or Fill color
   const [activeColorMode, setActiveColorMode] = useState<'border' | 'fill'>('border');
   const [flyoutOpen, setFlyoutOpen] = useState(false);
+  const { theme } = useTheme();
 
   const STROKE_WIDTHS = [
     { id: 'small', label: 'S', value: 1 },
@@ -100,19 +109,18 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
       <div className="hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 items-center z-50 pointer-events-none select-none">
 
         {/* 1. MAIN SIDEBAR (Sits on top, z-20) */}
-        <aside className="relative z-20 flex flex-col items-center gap-y-1 p-2 bg-white border shadow-xl rounded-2xl pointer-events-auto">
+        <aside className="relative z-20 flex flex-col items-center gap-y-1 p-2 bg-background border shadow-xl rounded-2xl pointer-events-auto">
           <ToolButton targetTool="select" icon={MousePointer2} />
-          <ToolButton targetTool="select" icon={Hand} />
+          <ToolButton targetTool="pan" icon={Hand} />
           <ToolButton targetTool="rectangle" icon={Square} />
           <ToolButton targetTool="pencil" icon={Pencil} />
           <ToolButton targetTool="eraser" icon={Eraser} />
 
-          <div className="w-full h-px bg-gray-200 my-1" />
 
-          <Button variant="ghost" size="icon" disabled>
+          <Button variant="ghost" size="icon" onClick={onUndo}>
             <Undo2 className="w-5 h-5 text-gray-300" />
           </Button>
-          <Button variant="ghost" size="icon" disabled>
+          <Button variant="ghost" size="icon" onClick={onRedo}>
             <Redo2 className="w-5 h-5 text-gray-300" />
           </Button>
         </aside>
@@ -121,7 +129,7 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
           <div className="flex gap-2 flex-col">
             <p className="text-xs text-muted-foreground">Stroke Width</p>
             <div className="flex gap-2">
-              {STROKE_WIDTHS.map((width) => (<Button key={width.id} variant={"outline"} className={`w-8 h-8 ${options.strokeWidth == width.value ? ("bg-accent") : ("")}`} onClick={() => { setOptions({ ...options, strokeWidth: width.value }) }}>{width.label}</Button>))}
+              {STROKE_WIDTHS.map((width) => (<Button key={width.id} variant={"outline"} className={`w-8 h-8 ${options.strokeWidth == width.value ? ("dark:bg-accent bg-accent") : ("")}`} onClick={() => { setOptions({ ...options, strokeWidth: width.value }) }}>{width.label}</Button>))}
             </div>
           </div>
 
@@ -134,7 +142,7 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
                   variant="outline"
                   size="icon"
                   onClick={() => { setOptions({ ...options, strokeType: type.id as ToolOptions["strokeType"] }) }}
-                  className={`w-8 h-8 ${options.strokeType === type.id ? ("bg-accent") : ("")}`}
+                  className={`w-8 h-8 ${options.strokeType === type.id ? ("dark:bg-accent bg-accent") : ("")}`}
                   title={type.label}
                 >
                   {type.icon}
@@ -148,16 +156,16 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
             <div className="flex gap-2 items-center">
               <p className="text-xs text-muted-foreground">Color</p>
               <Button
-                variant={activeColorMode === 'border' ? "secondary" : "outline"}
+                variant={"outline"}
                 onClick={() => { setActiveColorMode("border") }}
-                className={`h-6 text-xs ${activeColorMode === 'border' ? "bg-blue-100 text-blue-600 border-blue-200" : "text-muted-foreground"}`}
+                className={`h-6 text-xs ${activeColorMode === 'border' ? "dark:bg-accent bg-accent" : ""}`}
               >
                 Border
               </Button>
               <Button
-                variant={activeColorMode === 'fill' ? "secondary" : "outline"}
+                variant={"outline"}
                 onClick={() => { setActiveColorMode("fill") }}
-                className={`h-6 text-xs ${activeColorMode === 'fill' ? "bg-blue-100 text-blue-600 border-blue-200" : "text-muted-foreground"}`}
+                className={`h-6 text-xs ${activeColorMode === 'fill' ? "dark:bg-accent bg-accent" : ""}`}
               >
                 Fill
               </Button>
@@ -175,14 +183,22 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
                 <div className="w-full h-px bg-red-400 rotate-45 scale-125" />
               </button>
 
-              {COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => handleColorChange(c)}
-                  className={`w-6 h-6 rounded-full border border-black/5 ${activeColorValue === c ? "scale-110 ring-blue-500/50 ring-2 ring-offset-1" : ""}`}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
+              {COLORS.map((c) => {
+                // Visual Swap: If it's black & dark mode, show white button
+                const previewColor = getDisplayColor(c, theme);
+
+                return (
+                  <button
+                    key={c}
+                    onClick={() => handleColorChange(c)} // Save the REAL color (#000000)
+                    // Use the PREVIEW color for the background (#ffffff)
+                    style={{ backgroundColor: previewColor }}
+                    className={`w-6 h-6 rounded-full border border-black/5 ${activeColorValue === c ? "scale-110 ring-blue-500/50 ring-2 ring-offset-1" : ""
+                      }`}
+                    title={c}
+                  />
+                );
+              })}
             </div>
 
             <div className="flex justify-between items-center gap-2 mt-1 mr-2">
@@ -210,3 +226,4 @@ export function Sidebar({ tool, setTool, options, setOptions }: SidebarProps) {
     </>
   );
 }
+

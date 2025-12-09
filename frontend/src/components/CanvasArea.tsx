@@ -5,7 +5,6 @@ import { Cursor } from "@/components/ui/cursor";
 import { BoardStorage } from "../utils/boardStorage";
 import { useCanvasSize } from "@/hooks/useCanvasSize";
 import { useWhiteboard } from "@/hooks/useWhiteboard";
-import type { ActiveUser } from "./BoardHeader";
 import { Minus, Plus, RefreshCcw } from "lucide-react";
 import { useZoom } from "@/hooks/useZoom";
 import { useMouseMove } from "@/hooks/useMouseMove";

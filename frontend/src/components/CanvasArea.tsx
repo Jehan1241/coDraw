@@ -299,8 +299,6 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
           variant={"ghost"}
           onClick={() => zoomToCenter(0)}
           className="h-8 w-8"
-
-          title="Reset Zoom"
         >
           <RefreshCcw className="w-3 h-3" />
         </Button>

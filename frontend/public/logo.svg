@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+
+
+  <!-- Background -->
+  <rect width="100" height="100" rx="24" fill="#000"/>
+
+  <!-- Pen slightly larger and further up-left -->
+  <g transform="translate(44.5 44.5) rotate(-45) scale(1.1)">
+
+    <!-- Pen body -->
+    <rect stroke="black" stroke-width="2" x="-9" y="-40" width="18" height="80" rx="5" fill="white"/>
+
+    <!-- Metal collar -->
+    <rect stroke="black" stroke-width="2" x="-9" y="32" width="18" height="7" fill="white" opacity="0.9"/>
+
+    <!-- Tip -->
+    <path stroke="black" stroke-width="2" d="M -9 39 L 9 39 L 0 58 Z" fill="white"/>
+  </g>
+</svg>
+
+
+
+
+

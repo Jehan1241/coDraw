@@ -10,7 +10,7 @@ export function Flybar({ flyoutOpen, setFlyoutOpen, children }: FlybarProps) {
     return (
         <>
             <div
-                className={`absolute top-0 left-full z-10 h-full bg-white border-y border-r shadow-sm rounded-r-xl flex items-start transition-all duration-300 ease-in-out pointer-events-auto 
+                className={`absolute top-0 left-full z-10 h-full bg-background border-y border-r shadow-sm rounded-r-xl flex items-start transition-all duration-300 ease-in-out pointer-events-auto 
                 ${flyoutOpen ? "w-72 -translate-x-3" : "w-2 -translate-x-3"}`}
             >
                 <div className={`w-full p-2 pl-9 overflow-hidden flex flex-col gap-3 h-full justify-around transition-opacity duration-200 ${flyoutOpen ? "opacity-100 delay-100" : "opacity-0"}`}>
@@ -21,7 +21,7 @@ export function Flybar({ flyoutOpen, setFlyoutOpen, children }: FlybarProps) {
             </div>
             <button
                 onClick={() => setFlyoutOpen(!flyoutOpen)}
-                className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 h-6 w-6 bg-white border rounded-full shadow-md flex items-center justify-center cursor-pointer hover:bg-accent
+                className="absolute -right-3 top-1/2 -translate-y-1/2 z-50 h-6 w-6 bg-background border rounded-full shadow-md flex items-center justify-center cursor-pointer hover:bg-accent
                     pointer-events-auto duration-300 scale-105
                 "
             >

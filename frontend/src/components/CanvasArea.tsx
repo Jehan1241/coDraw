@@ -11,6 +11,8 @@ import { useZoom } from "@/hooks/useZoom";
 import { useMouseMove } from "@/hooks/useMouseMove";
 import { WobblyLine } from "./ui/WobblyLine";
 import { WelcomeScreen } from "./WelcomeScreen";
+import { Button } from "./ui/button";
+import { useTheme } from "./ui/theme-provider";
 
 
 interface CanvasAreaProps {
@@ -20,6 +22,17 @@ interface CanvasAreaProps {
   onActiveUsersChange?: (users: ActiveUser[]) => void;
 
 }
+
+export const getDisplayColor = (color: string | undefined, theme: string | undefined) => {
+  if (!color) return "black";
+  const isDark = theme === "dark" ||
+    (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  if (!isDark) return color;
+  const c = color.toLowerCase();
+  if (c === "black" || c === "#000000") return "#ffffff";
+  if (c === "white" || c === "#ffffff") return "#000000";
+  return color;
+};
 
 const getDashArray = (type?: string, width?: number) => {
   const w = width || 2;
@@ -32,6 +45,10 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
   const stageRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const { theme } = useTheme();
+
+
 
   const saveThumbnail = () => {
     if (!stageRef.current) return;
@@ -74,6 +91,12 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
       shape.strokeWidth || 2,
       ERASER_SCREEN_SIZE / viewport.scale
     );
+
+
+    const finalStroke = getDisplayColor(shape.strokeColor || "black", theme);
+    const finalFill = shape.fill === "transparent"
+      ? "transparent"
+      : getDisplayColor(shape.fill, theme);
 
     const isSelected = selectedId === shape.id;
 
@@ -130,7 +153,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
       rotation: shape.rotation || 0,
       scaleX: shape.scaleX || 1,
       scaleY: shape.scaleY || 1,
-      stroke: shape.strokeColor || "black",
+      stroke: finalStroke || "black",
       strokeWidth: shape.strokeWidth || 2,
       hitStrokeWidth: hitWidth,
       lineCap: "round" as const,
@@ -149,7 +172,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
           {...commonProps}
           width={shape.width}
           height={shape.height}
-          fill={shape.fill || "transparent"}
+          fill={finalFill || "transparent"}
           dash={getDashArray(shape.strokeType, shape.strokeWidth)}
           cornerRadius={shape.strokeType === 'wobbly' ? 10 : 0}
         />
@@ -163,7 +186,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
           key={shape.id || 'temp'}
           {...commonProps}
           points={shape.points || []}
-          color={shape.strokeColor || "black"}
+          color={finalStroke || "black"}
           width={shape.strokeWidth || 2}
         />
       );
@@ -187,7 +210,7 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
   return (
     <div
       ref={containerRef}
-      className="w-full h-full bg-white"
+      className="w-full h-full bg-background"
       style={{ cursor: cursorStyle }}
     >
 
@@ -250,36 +273,39 @@ export function CanvasArea({ tool, boardId, onActiveUsersChange, options }: Canv
       </Stage>
 
       {syncedShapes.length === 0 && !currentShapeData && <WelcomeScreen />}
-      <div className="fixed bottom-4 right-4 flex items-center gap-2 bg-white p-2 rounded-lg shadow-md border z-50">
-        <button
+      <div className="fixed bottom-4 right-4 flex items-center gap-1 bg-background p-2 rounded-lg shadow-md border z-50 select-none">
+        <Button
+          variant={"ghost"}
+          className="h-8 w-8"
           onClick={() => zoomToCenter(-1)}
-          className="p-1 hover:bg-gray-100 rounded"
-          title="Zoom Out (Ctrl+Wheel Down)"
         >
-          <Minus className="w-4 h-4 text-gray-600" />
-        </button>
+          <Minus className="w-4 h-4 text-foreground " />
+        </Button>
 
         <span className="text-xs font-mono w-12 text-center">
           {Math.round(viewport.scale * 100)}%
         </span>
 
-        <button
+        <Button
+          variant={"ghost"}
           onClick={() => zoomToCenter(1)}
-          className="p-1 hover:bg-gray-100 rounded"
-          title="Zoom In (Ctrl+Wheel Up)"
+          className="h-8 w-8"
+
         >
-          <Plus className="w-4 h-4 text-gray-600" />
-        </button>
+          <Plus className="w-4 h-4 text-foreground  " />
+        </Button>
 
-        <div className="w-px h-4 bg-gray-300 mx-1" />
+        <div className="w-px h-4 mx-1" />
 
-        <button
+        <Button
+          variant={"ghost"}
           onClick={() => zoomToCenter(0)}
-          className="p-1 hover:bg-gray-100 rounded"
+          className="h-8 w-8"
+
           title="Reset Zoom"
         >
-          <RefreshCcw className="w-3 h-3 text-gray-500" />
-        </button>
+          <RefreshCcw className="w-3 h-3" />
+        </Button>
       </div>
     </div>
   );

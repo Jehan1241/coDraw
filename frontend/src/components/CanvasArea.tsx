@@ -256,6 +256,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
               y={cursor.y}
               name={cursor.name}
               color={cursor.color}
+              tool={cursor.tool}
             />
           ))}
           {selectionBox && (

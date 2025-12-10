@@ -29,6 +29,7 @@ export function BoardPage() {
     const whiteboard = useWhiteboard({
         boardId: boardId!,
         onActiveUsersChange: setActiveUsers,
+        tool: tool
     });
 
     useEffect(() => {

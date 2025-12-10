@@ -4,12 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { IndexeddbPersistence } from "y-indexeddb";
 import * as Y from "yjs";
 import type { ActiveUser } from "@/components/BoardHeader";
+import type { Tool } from "@/pages/BoardPage";
 
 interface CursorData {
   x: number;
   y: number;
   name: string;
   color: string;
+  tool: Tool
 }
 
 export type SyncedShape = {
@@ -31,11 +33,11 @@ export type SyncedShape = {
 
 export interface GhostShapeData {
   type?: string;
-  points?: number[]; // Make optional
-  x?: number;        // Add x
-  y?: number;        // Add y
-  width?: number;    // Add width
-  height?: number;   // Add height
+  points?: number[];
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
   strokeColor?: string;
   strokeWidth?: number;
   strokeType?: string;
@@ -56,11 +58,17 @@ function throttle(fn: (...args: any[]) => void, delay: number) {
 interface useWhiteboardProps {
   boardId: string;
   onActiveUsersChange?: (users: ActiveUser[]) => void;
+  tool: Tool
 }
 
-export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardProps) {
+export function useWhiteboard({ boardId, onActiveUsersChange, tool }: useWhiteboardProps) {
   const { user } = useUser();
   const userRef = useRef(user);
+
+  const toolRef = useRef(tool);
+  useEffect(() => {
+    toolRef.current = tool;
+  }, [tool]);
 
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
@@ -105,12 +113,14 @@ export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardPr
   }, [undoManagerRef.current]);
 
   const providerRef = useRef<HocuspocusProvider | null>(null);
+
   const throttledSetAwareness = useRef(
     throttle((x: number | null, y: number | null, shapeData: GhostShapeData | null) => {
       const payload: any = {};
       if (x !== null && y !== null) payload.cursor = { x, y };
       if (shapeData) payload.drawing = shapeData;
       else payload.drawing = null;
+      payload.tool = toolRef.current;
 
       if (Object.keys(payload).length > 0) {
         providerRef.current?.setAwarenessField("user", {
@@ -121,6 +131,7 @@ export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardPr
       }
     }, 30),
   ).current;
+
 
   const [cursors, setCursors] = useState(new Map<number, CursorData>());
   const [smoothCursors, setSmoothCursors] = useState(
@@ -133,7 +144,7 @@ export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardPr
     function animate() {
       setSmoothCursors((prev) => {
         const updated = new Map(prev);
-        const currentCursors = cursors; // Read from state closure
+        const currentCursors = cursors;
 
         currentCursors.forEach((raw, id) => {
           const prevSmooth = prev.get(id);
@@ -193,6 +204,7 @@ export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardPr
     provider.setAwarenessField("user", {
       name: userRef.current.name,
       color: userRef.current.color,
+      tool: toolRef.current
     });
 
     providerRef.current = provider;
@@ -227,6 +239,7 @@ export function useWhiteboard({ boardId, onActiveUsersChange, }: useWhiteboardPr
                 y: state.user.cursor.y,
                 name: state.user.name,
                 color: state.user.color,
+                tool: state.user.tool || 'select'
               });
             }
             if (state.user.drawing) {

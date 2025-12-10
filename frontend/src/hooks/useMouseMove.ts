@@ -90,10 +90,16 @@ export function useMouseMove({
                 if (!finalShape.id) finalShape.id = uniqueId;
                 yjsShapesMap.set(finalShape.id, finalShape);
             }
+
+            const pos = stage.getRelativePointerPosition();
+            if (pos) {
+                throttledSetAwareness(pos.x, pos.y, null);
+            } else {
+                throttledSetAwareness(null, null, null);
+            }
         }
 
         setCurrentShapeData(null);
-        throttledSetAwareness(null, null, null);
         saveThumbnail();
     };
 

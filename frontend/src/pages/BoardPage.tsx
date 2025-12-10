@@ -1,5 +1,3 @@
-// src/pages/BoardPage.tsx
-
 import { useParams, useNavigate } from 'react-router-dom';
 import { BoardHeader, type ActiveUser } from '@/components/BoardHeader';
 import { Sidebar } from '@/components/sidebar/Sidebar';

@@ -13,7 +13,7 @@ import { WelcomeScreen } from "./WelcomeScreen";
 import { Button } from "./ui/button";
 import { useTheme } from "./ui/theme-provider";
 import { getCursorStyle, getResizeCursor, getRotateCursor } from "@/utils/cursorStyle";
-import { useSelectionDelete } from "@/hooks/useSelectionDelete";
+import { useSelectionShortcuts } from "@/hooks/useSelectionShortcuts";
 
 
 interface CanvasAreaProps {
@@ -68,7 +68,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
   const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedIds, setSelectionBox, selectedIds });
 
-  useSelectionDelete({
+  useSelectionShortcuts({
     selectedIds,
     setSelectedIds,
     yjsShapesMap: whiteboard.yjsShapesMap

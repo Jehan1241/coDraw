@@ -9,6 +9,7 @@ import { Input } from "../ui/input";
 import { getDisplayColor } from "../CanvasArea";
 import { useTheme } from "../ui/theme-provider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { TOOL_HOTKEYS } from "@/hooks/useHotkeys";
 
 interface SidebarProps {
   tool: Tool;
@@ -33,11 +34,12 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo, ca
       <TooltipTrigger asChild>
         <Button
           variant={tool === targetTool ? "secondary" : "ghost"}
-          size="icon"
+          size="icon-lg"
           onClick={() => setTool(targetTool)}
-          className={tool === targetTool ? "bg-accent" : "text-foreground /60"}
+          className={tool === targetTool ? "bg-accent relative" : "text-foreground /60 relative"}
         >
           <Icon className="w-5 h-5" />
+          <p className="absolute text-[9px] bottom-0.5 right-0.5 text-muted-foreground">{TOOL_HOTKEYS[targetTool]}</p>
         </Button >
       </TooltipTrigger>
       <TooltipContent side="right">
@@ -131,7 +133,7 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo, ca
 
           <Tooltip delayDuration={500}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onUndo} disabled={!canUndo}>
+              <Button variant="ghost" size="icon-lg" onClick={onUndo} disabled={!canUndo}>
                 <Undo2 className="w-5 h-5 " />
               </Button>
             </TooltipTrigger>
@@ -142,7 +144,7 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo, ca
 
           <Tooltip delayDuration={500}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onRedo} disabled={!canRedo}>
+              <Button variant="ghost" size="icon-lg" onClick={onRedo} disabled={!canRedo}>
                 <Redo2 className="w-5 h-5 " />
               </Button>
             </TooltipTrigger>

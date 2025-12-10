@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { BoardProvider } from '@/contexts/BoardContext';
 import { BoardStorage } from "@/utils/boardStorage";
 import { useWhiteboard } from '@/hooks/useWhiteboard';
+import { useHotkeys } from '@/hooks/useHotkeys';
 
 export type Tool = "select" | "pencil" | "rectangle" | "eraser" | "pan";
 export type ToolOptions = {
@@ -40,6 +41,8 @@ export function BoardPage() {
         navigate('/');
         return null;
     }
+
+    useHotkeys(setTool)
 
     return (
         <BoardProvider boardId={boardId}>

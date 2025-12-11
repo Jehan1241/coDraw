@@ -3,7 +3,6 @@ import type React from "react";
 import { useEffect } from "react";
 import type { SyncedShape } from "./useWhiteboard";
 import type { YMap } from "node_modules/yjs/dist/src/internals";
-import type Konva from "konva";
 
 interface useTextToolProps {
     transformerRef: React.RefObject<any>,
@@ -43,12 +42,15 @@ export function useTextTool({ transformerRef, viewport, editingId, yjsShapesMap,
         node.scaleY(baseScale);
     };
 
-    const handleTextTransformEnd = (node: Konva.Text, shape: SyncedShape) => {
+    const handleTextTransformEnd = (node: any, shape: SyncedShape) => {
         const currentZoom = viewport.scale;
 
         if (yjsShapesMap) {
             yjsShapesMap.set(shape.id, {
                 ...shape,
+                x: node.x(),
+                y: node.y(),
+                rotation: node.rotation(),
                 width: node.width() / currentZoom,
                 fontSize: node.fontSize() / currentZoom,
                 scaleX: 1,

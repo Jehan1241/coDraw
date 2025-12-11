@@ -6,7 +6,8 @@ export const TOOL_HOTKEYS: Record<Tool, string> = {
     "pencil": "D",
     "rectangle": "R",
     "eraser": "E",
-    "pan": "W"
+    "pan": "W",
+    "text": "T"
 };
 
 export function useHotkeys(setTool: (tool: Tool) => void) {
@@ -16,7 +17,7 @@ export function useHotkeys(setTool: (tool: Tool) => void) {
             if (activeTag === 'input' || activeTag === 'textarea') return;
             const pressedKey = e.key.toLowerCase();
             const targetTool = (Object.keys(TOOL_HOTKEYS) as Tool[]).find(
-                (tool) => TOOL_HOTKEYS[tool] === pressedKey
+                (tool) => TOOL_HOTKEYS[tool].toLowerCase() === pressedKey
             );
             if (targetTool) {
                 setTool(targetTool);

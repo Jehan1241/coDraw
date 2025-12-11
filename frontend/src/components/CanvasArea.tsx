@@ -71,6 +71,34 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
   const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedIds, setSelectionBox, selectedIds });
 
+  const handleTextTransform = (e: any) => {
+    const node = e.target;
+    const anchor = transformerRef.current?.getActiveAnchor();
+
+    const currentZoom = viewport.scale;
+    const baseScale = 1 / currentZoom;
+
+    const stretchX = node.scaleX() / baseScale;
+    const stretchY = node.scaleY() / baseScale;
+
+    // CASE A: Side Handles (Width Only - Reflow)
+    if (['middle-left', 'middle-right'].includes(anchor)) {
+      node.width(Math.max(20, node.width() * stretchX));
+    }
+
+    // CASE B: Corner Handles (Proportional Scale)
+    // We update BOTH width and fontSize to maintain the text block's aspect ratio
+    // This prevents the "Feedback Loop" because the box gets wider as the font gets bigger.
+    else if (['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(anchor)) {
+      node.width(Math.max(20, node.width() * stretchX));
+      node.fontSize(Math.max(12, node.fontSize() * stretchY));
+    }
+
+    // Always reset scale to keep high-res rendering
+    node.scaleX(baseScale);
+    node.scaleY(baseScale);
+  };
+
 
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -165,31 +193,25 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
       }
 
       else if (shape.type === 'text') {
-        const currentScaleX = node.scaleX();
-        const currentScaleY = node.scaleY();
+        const currentZoom = viewport.scale;
 
-        // 1. FIX: Reset to INVERSE scale (what the renderer expects)
-        // Instead of 1, we use 1/zoom.
-        const invScale = 1 / viewport.scale;
-        node.scaleX(invScale);
-        node.scaleY(invScale);
+        // The node is already visually correct.
+        // We just need to save the "Zoom-Independent" values to the DB.
+        // e.g., If Font is 240px (at 10% zoom), we save 24px.
 
-        // 2. Calculate Growth Factors
-        // We compare the scale AFTER the user drag (currentScale)
-        // vs the scale BEFORE the drag (baseScale = invScale)
-        const factorX = currentScaleX / invScale;
-        const factorY = currentScaleY / invScale;
-
-        // 3. Update YJS
         yjsShapesMap.set(shape.id, {
           ...baseAttrs,
-          fontSize: Math.max(12, (shape.fontSize || 24) * factorY),
-          width: Math.max(20, shape.width * factorX),
+          width: node.width() / currentZoom,
+          fontSize: node.fontSize() / currentZoom,
 
-          // Reset DB scales to 1 (because our render logic handles the inverse math)
+          // Always reset scales to 1 in DB
           scaleX: 1,
           scaleY: 1,
         });
+
+        // Reset local node scale to be safe
+        node.scaleX(1 / currentZoom);
+        node.scaleY(1 / currentZoom);
       }
 
       else {
@@ -245,19 +267,20 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
       return (
         <React.Fragment key={shape.id}>
           <KonvaText
-            {...commonProps} // <--- This contains "stroke" and "strokeWidth: 2"
-
-            // FIX 1: Turn off the outline!
+            {...commonProps}
             strokeEnabled={false}
-
-            // FIX 2: Ensure we only use Fill (Text Color)
             fill={finalStroke}
-
             text={shape.text || "\u200b"}
+
+            // High-Res Rendering Logic
             fontSize={(shape.fontSize || 24) * currentZoom}
             width={shape.width * currentZoom}
             scaleX={1 / currentZoom}
             scaleY={1 / currentZoom}
+
+            // The Live Logic
+            onTransform={handleTextTransform}
+
             fontFamily={shape.fontFamily || "sans-serif"}
             opacity={isEditing ? 0 : 1}
             onDblClick={() => setEditingId(shape.id)}
@@ -389,6 +412,12 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
             />
           )}
           {!editingId && (<Transformer
+            enabledAnchors={
+              editingId ? [] :
+                (selectedIds.size === 1 && syncedShapes.find(s => s.id === Array.from(selectedIds)[0])?.type === 'text')
+                  ? ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right']
+                  : undefined
+            }
             ref={transformerRef}
             rotateAnchorCursor={rotateCursor}
             anchorStyleFunc={(anchor: any) => {

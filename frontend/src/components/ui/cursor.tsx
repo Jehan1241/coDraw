@@ -1,5 +1,5 @@
 import React from "react";
-import { Group, Path, Text } from "react-konva";
+import { Path, Text } from "react-konva";
 import { useTheme } from "./theme-provider";
 
 interface CursorProps {

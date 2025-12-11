@@ -317,6 +317,7 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
               name={cursor.name}
               color={cursor.color}
               tool={cursor.tool}
+              zoom={viewport.scale}
             />
           ))}
           {selectionBox && (

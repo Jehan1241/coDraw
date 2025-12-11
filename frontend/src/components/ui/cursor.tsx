@@ -1,5 +1,5 @@
 import React from "react";
-import { Path, Text } from "react-konva";
+import { Group, Path, Text } from "react-konva";
 import { useTheme } from "./theme-provider";
 
 interface CursorProps {
@@ -8,6 +8,7 @@ interface CursorProps {
     color: string;
     name: string;
     tool?: string;
+    zoom: number;
 }
 
 
@@ -50,7 +51,7 @@ const TOOL_CONFIG: Record<string, { path: string; scale: number; offsetX: number
     }
 };
 
-export function Cursor({ x, y, color, name, tool }: CursorProps) {
+export function Cursor({ x, y, color, name, tool, zoom }: CursorProps) {
     const { theme } = useTheme();
     const isDark = theme === "dark" ||
         (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
@@ -60,23 +61,28 @@ export function Cursor({ x, y, color, name, tool }: CursorProps) {
 
     const strokeWidth = tool === 'eraser' ? 0.5 : 1.5;
 
+    const safeZoom = zoom || 1;
+    const inverseZoom = 1 / safeZoom;
+
     return (
         <React.Fragment>
             <Path
-                x={x - config.offsetX}
-                y={y - config.offsetY}
+                x={x - (config.offsetX * inverseZoom)}
+                y={y - (config.offsetY * inverseZoom)}
                 data={config.path}
                 stroke={color}
                 strokeWidth={strokeWidth}
-                scaleX={config.scale}
-                scaleY={config.scale}
+                scaleX={config.scale * inverseZoom}
+                scaleY={config.scale * inverseZoom}
                 lineCap="round"
                 lineJoin="round"
                 listening={false}
             />
             <Text
-                x={x + 16}
-                y={y + 16}
+                x={x + (16 * inverseZoom)}
+                y={y + (16 * inverseZoom)}
+                scaleX={inverseZoom}
+                scaleY={inverseZoom}
                 text={name}
                 fill={textColor}
                 fontSize={12}

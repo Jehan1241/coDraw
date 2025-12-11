@@ -15,6 +15,7 @@ import { useTheme } from "./ui/theme-provider";
 import { getCursorStyle, getResizeCursor, getRotateCursor } from "@/utils/cursorStyle";
 import { useSelectionShortcuts } from "@/hooks/useSelectionShortcuts";
 import { TextEditor } from "./TextEditor";
+import React from "react";
 
 
 interface CanvasAreaProps {
@@ -164,20 +165,28 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
       }
 
       else if (shape.type === 'text') {
-        const scaleX = node.scaleX();
-        const scaleY = node.scaleY();
+        const currentScaleX = node.scaleX();
+        const currentScaleY = node.scaleY();
 
-        // Reset the node scale immediately so it doesn't look distorted
-        node.scaleX(1);
-        node.scaleY(1);
+        // 1. FIX: Reset to INVERSE scale (what the renderer expects)
+        // Instead of 1, we use 1/zoom.
+        const invScale = 1 / viewport.scale;
+        node.scaleX(invScale);
+        node.scaleY(invScale);
 
+        // 2. Calculate Growth Factors
+        // We compare the scale AFTER the user drag (currentScale)
+        // vs the scale BEFORE the drag (baseScale = invScale)
+        const factorX = currentScaleX / invScale;
+        const factorY = currentScaleY / invScale;
+
+        // 3. Update YJS
         yjsShapesMap.set(shape.id, {
           ...baseAttrs,
-          // Calculate new Font Size based on vertical scale
-          fontSize: Math.max(12, (shape.fontSize || 24) * scaleY),
-          // Calculate new Width based on horizontal scale
-          width: Math.max(20, node.width() * scaleX),
-          // Reset scales to 1
+          fontSize: Math.max(12, (shape.fontSize || 24) * factorY),
+          width: Math.max(20, shape.width * factorX),
+
+          // Reset DB scales to 1 (because our render logic handles the inverse math)
           scaleX: 1,
           scaleY: 1,
         });
@@ -230,31 +239,39 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
     };
 
     if (shape.type === 'text') {
-      // 1. If Editing: Show the HTML Overlay
-      if (editingId === shape.id) {
-        return (
-          <TextEditor
-            key={shape.id}
-            scale={viewport.scale}
-            shape={shape}
-            onChange={handleTextChange}
-            onFinish={handleFinish}
-          />
-        );
-      }
+      const isEditing = editingId === shape.id;
+      const currentZoom = viewport.scale;
 
-      // 2. If Not Editing: Show standard Konva Text
       return (
-        <KonvaText
-          key={shape.id}
-          {...commonProps}
-          text={shape.text}
-          fontSize={shape.fontSize || 24}
-          fontFamily={shape.fontFamily || "sans-serif"}
-          fill={finalStroke} // Reuse stroke color for text
-          // Double click to edit manually
-          onDblClick={() => setEditingId(shape.id)}
-        />
+        <React.Fragment key={shape.id}>
+          <KonvaText
+            {...commonProps} // <--- This contains "stroke" and "strokeWidth: 2"
+
+            // FIX 1: Turn off the outline!
+            strokeEnabled={false}
+
+            // FIX 2: Ensure we only use Fill (Text Color)
+            fill={finalStroke}
+
+            text={shape.text || "\u200b"}
+            fontSize={(shape.fontSize || 24) * currentZoom}
+            width={shape.width * currentZoom}
+            scaleX={1 / currentZoom}
+            scaleY={1 / currentZoom}
+            fontFamily={shape.fontFamily || "sans-serif"}
+            opacity={isEditing ? 0 : 1}
+            onDblClick={() => setEditingId(shape.id)}
+          />
+
+          {isEditing && (
+            <TextEditor
+              shape={shape}
+              scale={currentZoom}
+              onChange={handleTextChange}
+              onFinish={handleFinish}
+            />
+          )}
+        </React.Fragment>
       );
     }
 

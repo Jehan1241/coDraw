@@ -16,6 +16,7 @@ import { getCursorStyle, getResizeCursor, getRotateCursor } from "@/utils/cursor
 import { useSelectionShortcuts } from "@/hooks/useSelectionShortcuts";
 import { TextEditor } from "./TextEditor";
 import React from "react";
+import { useTextTool } from "@/hooks/useTextTool";
 
 
 interface CanvasAreaProps {
@@ -62,6 +63,8 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
   const rotateCursor = getRotateCursor(theme);
   const resizeCursor = getResizeCursor(theme);
   const [forceResizeCursor, setForceResizeCursor] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
@@ -70,75 +73,7 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
   const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedIds, setSelectionBox, selectedIds });
-
-  const handleTextTransform = (e: any) => {
-    const node = e.target;
-    const anchor = transformerRef.current?.getActiveAnchor();
-
-    const currentZoom = viewport.scale;
-    const baseScale = 1 / currentZoom;
-
-    const stretchX = node.scaleX() / baseScale;
-    const stretchY = node.scaleY() / baseScale;
-
-    // CASE A: Side Handles (Width Only - Reflow)
-    if (['middle-left', 'middle-right'].includes(anchor)) {
-      node.width(Math.max(20, node.width() * stretchX));
-    }
-
-    // CASE B: Corner Handles (Proportional Scale)
-    // We update BOTH width and fontSize to maintain the text block's aspect ratio
-    // This prevents the "Feedback Loop" because the box gets wider as the font gets bigger.
-    else if (['top-left', 'top-right', 'bottom-left', 'bottom-right'].includes(anchor)) {
-      node.width(Math.max(20, node.width() * stretchX));
-      node.fontSize(Math.max(12, node.fontSize() * stretchY));
-    }
-
-    // Always reset scale to keep high-res rendering
-    node.scaleX(baseScale);
-    node.scaleY(baseScale);
-  };
-
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    // If we are already editing, don't interrupt
-    if (editingId) return;
-
-    // If Text Tool is active + exactly 1 item selected + that item is text -> Edit it
-    if (tool === 'text' && selectedIds.size === 1) {
-      const id = selectedIds.values().next().value as string;
-      const shape = yjsShapesMap?.get(id);
-      if (shape && shape.type === 'text') {
-        setEditingId(id);
-      }
-    }
-  }, [selectedIds, yjsShapesMap, editingId]);
-
-  const handleTextChange = (val: string) => {
-    if (editingId && yjsShapesMap) {
-      const shape = yjsShapesMap.get(editingId);
-      if (shape) {
-        // We explicitly set 'id' to satisfy TypeScript
-        yjsShapesMap.set(editingId, { ...shape, text: val, id: editingId });
-      }
-    }
-  };
-
-  // C. Finish Editing (Cleanup)
-  const handleFinish = () => {
-    if (editingId && yjsShapesMap) {
-      const shape = yjsShapesMap.get(editingId);
-      // Delete if empty
-      if (shape && (!shape.text || shape.text.trim() === "")) {
-        yjsShapesMap.delete(editingId);
-      }
-    }
-    setEditingId(null);
-    setTool('select'); // <--- Switches to Select Mode automatically
-  };
-
+  const { handleTextTransform, handleTextChange, handleFinish, handleTextTransformEnd } = useTextTool({ transformerRef, viewport, editingId, yjsShapesMap, setTool, tool, setEditingId, selectedIds })
   useSelectionShortcuts({
     selectedIds,
     setSelectedIds,
@@ -193,25 +128,7 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
       }
 
       else if (shape.type === 'text') {
-        const currentZoom = viewport.scale;
-
-        // The node is already visually correct.
-        // We just need to save the "Zoom-Independent" values to the DB.
-        // e.g., If Font is 240px (at 10% zoom), we save 24px.
-
-        yjsShapesMap.set(shape.id, {
-          ...baseAttrs,
-          width: node.width() / currentZoom,
-          fontSize: node.fontSize() / currentZoom,
-
-          // Always reset scales to 1 in DB
-          scaleX: 1,
-          scaleY: 1,
-        });
-
-        // Reset local node scale to be safe
-        node.scaleX(1 / currentZoom);
-        node.scaleY(1 / currentZoom);
+        handleTextTransformEnd(node, shape)
       }
 
       else {

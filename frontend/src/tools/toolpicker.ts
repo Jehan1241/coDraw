@@ -3,6 +3,7 @@ import { PencilTool } from "./pencil";
 import { EraserTool } from "./eraser";
 import { RectangleTool } from "./rectangle";
 import { SelectTool } from "./select";
+import { TextTool } from "./text";
 
 // Map tool names (strings) to their implementation
 export const TOOLS: Record<string, ToolLogic> = {
@@ -11,4 +12,5 @@ export const TOOLS: Record<string, ToolLogic> = {
     select: SelectTool,
     pan: { onDown: () => null, onMove: () => null, onUp: () => null },
     rectangle: RectangleTool,
+    text: TextTool,
 };

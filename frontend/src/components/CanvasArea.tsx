@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Line, Rect, Transformer } from "react-konva";
+import { Stage, Layer, Line, Rect, Transformer, Text as KonvaText } from "react-konva";
 import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { Cursor } from "@/components/ui/cursor";
 import { BoardStorage } from "../utils/boardStorage";
@@ -13,23 +13,32 @@ import { WelcomeScreen } from "./WelcomeScreen";
 import { Button } from "./ui/button";
 import { useTheme } from "./ui/theme-provider";
 import { getCursorStyle, getResizeCursor, getRotateCursor } from "@/utils/cursorStyle";
+import { useSelectionShortcuts } from "@/hooks/useSelectionShortcuts";
+import { TextEditor } from "./TextEditor";
+import React from "react";
+import { useTextTool } from "@/hooks/useTextTool";
 
 
 interface CanvasAreaProps {
   tool: Tool;
+  setTool: (tool: Tool) => void;
   options: ToolOptions;
   boardId: string;
-  whiteboard: ReturnType<typeof useWhiteboard>; // <--- New prop
+  whiteboard: ReturnType<typeof useWhiteboard>;
 }
 
 export const getDisplayColor = (color: string | undefined, theme: string | undefined) => {
-  if (!color) return "black";
   const isDark = theme === "dark" ||
     (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  if (!isDark) return color;
+  if (!color || color === "") {
+    return isDark ? "#ffffff" : "#000000";
+  }
   const c = color.toLowerCase();
-  if (c === "black" || c === "#000000") return "#ffffff";
-  if (c === "white" || c === "#ffffff") return "#000000";
+  if (isDark) {
+    if (c === "#000000" || c === "black") return "#ffffff";
+  } else {
+    if (c === "#ffffff" || c === "white") return "#000000";
+  }
   return color;
 };
 
@@ -40,14 +49,10 @@ const getDashArray = (type?: string, width?: number) => {
   return undefined;
 };
 
-export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaProps) {
+export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: CanvasAreaProps) {
   const stageRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
   const { theme } = useTheme();
-
-
 
   const saveThumbnail = () => {
     if (!stageRef.current) return;
@@ -62,30 +67,37 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
   const rotateCursor = getRotateCursor(theme);
   const resizeCursor = getResizeCursor(theme);
   const [forceResizeCursor, setForceResizeCursor] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionBox, setSelectionBox] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
 
   const { stageSize, containerRef } = useCanvasSize();
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
-  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedId })
+  const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedIds, setSelectionBox, selectedIds });
+  const { handleTextTransform, handleTextChange, handleFinish, handleTextTransformEnd, handleAttributeChange } = useTextTool({ transformerRef, viewport, editingId, yjsShapesMap, setTool, tool, setEditingId, selectedIds })
+  useSelectionShortcuts({
+    selectedIds,
+    setSelectedIds,
+    yjsShapesMap: whiteboard.yjsShapesMap
+  });
+
 
   useEffect(() => {
     if (!transformerRef.current || !stageRef.current) return;
-
     transformerRef.current.nodes([]);
-
-    if (selectedId) {
-      const node = stageRef.current.findOne("#" + selectedId);
-      if (node) {
-        transformerRef.current.nodes([node]);
-      }
+    if (selectedIds.size > 0) {
+      const nodes = Array.from(selectedIds)
+        .map((id) => stageRef.current.findOne("#" + id))
+        .filter((node) => node !== undefined);
+      transformerRef.current.nodes(nodes);
     }
-
     transformerRef.current.getLayer()?.batchDraw();
-  }, [selectedId, syncedShapes]);
+  }, [selectedIds, syncedShapes, editingId]);
 
   const ERASER_SCREEN_SIZE = 30;
-
 
   const renderShape = (shape: any, extraProps: any = {}) => {
     const hitWidth = Math.max(
@@ -98,7 +110,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
       ? "transparent"
       : getDisplayColor(shape.fill, theme);
 
-    const isSelected = selectedId === shape.id;
+    const isSelected = selectedIds.has(shape.id);
 
     const handleTransformEnd = (e: any) => {
       if (!yjsShapesMap) return;
@@ -111,7 +123,6 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
         rotation: node.rotation(),
       };
 
-      // 1. Lines strategy: Keep points as is, save scale
       if (shape.type === 'line' || shape.points) {
         yjsShapesMap.set(shape.id, {
           ...baseAttrs,
@@ -119,7 +130,11 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
           scaleY: node.scaleY(),
         });
       }
-      // 2. Rects strategy: Normalize scale to 1, save new width/height
+
+      else if (shape.type === 'text') {
+        handleTextTransformEnd(node, shape)
+      }
+
       else {
         const scaleX = node.scaleX();
         const scaleY = node.scaleY();
@@ -150,6 +165,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
       id: shape.id,
       x: shape.x || 0,
       y: shape.y || 0,
+      name: "whiteboard-object",
       rotation: shape.rotation || 0,
       scaleX: shape.scaleX || 1,
       scaleY: shape.scaleY || 1,
@@ -164,6 +180,43 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
       onTransformEnd: handleTransformEnd,
       ...extraProps
     };
+
+    if (shape.type === 'text') {
+      const isEditing = editingId === shape.id;
+      const currentZoom = viewport.scale;
+      const konvaFontStyle = `${shape.fontWeight || 'normal'} ${shape.fontStyle || 'normal'}`;
+
+      return (
+        <React.Fragment key={shape.id}>
+          <KonvaText
+            {...commonProps}
+            strokeEnabled={false}
+            text={shape.text || "\u200b"}
+            fill={finalFill}
+            fontStyle={konvaFontStyle}
+            textDecoration={shape.textDecoration}
+            fontSize={(shape.fontSize || 24) * currentZoom}
+            width={shape.width * currentZoom}
+            scaleX={1 / currentZoom}
+            scaleY={1 / currentZoom}
+            onTransform={handleTextTransform}
+            fontFamily={shape.fontFamily || "sans-serif"}
+            opacity={isEditing ? 0 : 1}
+            onDblClick={() => setEditingId(shape.id)}
+          />
+
+          {isEditing && (
+            <TextEditor
+              shape={{ ...shape, fill: finalFill }}
+              scale={currentZoom}
+              onAttributesChange={handleAttributeChange}
+              onChange={handleTextChange}
+              onFinish={handleFinish}
+            />
+          )}
+        </React.Fragment>
+      );
+    }
 
     if (shape.type === 'rect') {
       return (
@@ -204,7 +257,6 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
     return null;
   };
 
-
   return (
     <div
       ref={containerRef}
@@ -240,7 +292,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
         <Layer>
           {/* 3. RENDER SAVED SHAPES */}
           {syncedShapes.map((shape) => {
-            if (shape.type === "line" || shape.type === "rect") {
+            if (shape.type === "line" || shape.type === "rect" || shape.type === "text") {
               const isDrawingTool = tool === "pencil" || tool === "rectangle";
               return renderShape(shape, {
                 listening: !isDrawingTool // Disable listening if drawing to draw rect in rect
@@ -264,9 +316,29 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
               y={cursor.y}
               name={cursor.name}
               color={cursor.color}
+              tool={cursor.tool}
+              zoom={viewport.scale}
             />
           ))}
-          <Transformer
+          {selectionBox && (
+            <Rect
+              x={selectionBox.x}
+              y={selectionBox.y}
+              width={selectionBox.width}
+              height={selectionBox.height}
+              fill="rgba(0, 161, 255, 0.3)"
+              stroke="#00a1ff"
+              strokeWidth={1}
+              listening={false}
+            />
+          )}
+          {!editingId && (<Transformer
+            enabledAnchors={
+              editingId ? [] :
+                (selectedIds.size === 1 && syncedShapes.find(s => s.id === Array.from(selectedIds)[0])?.type === 'text')
+                  ? ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'middle-left', 'middle-right']
+                  : undefined
+            }
             ref={transformerRef}
             rotateAnchorCursor={rotateCursor}
             anchorStyleFunc={(anchor: any) => {
@@ -282,7 +354,8 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
               if (newBox.width < 5 || newBox.height < 5) return oldBox;
               return newBox;
             }}
-          />
+          />)}
+
         </Layer>
       </Stage>
 

@@ -11,21 +11,41 @@ interface useMouseMoveProps {
     saveThumbnail: () => void,
     tool: Tool,
     options: ToolOptions,
-    setViewport: Dispatch<SetStateAction<{
-        x: number;
-        y: number;
-        scale: number;
-    }>>,
-    yjsShapesMap: YMap<SyncedShape> | null
-    setSelectedId: (id: string | null) => void;
+    setViewport: Dispatch<SetStateAction<{ x: number; y: number; scale: number; }>>,
+    yjsShapesMap: YMap<SyncedShape> | null,
+    setSelectedIds: Dispatch<SetStateAction<Set<string>>>;
+    setSelectionBox: Dispatch<SetStateAction<{ x: number, y: number, width: number, height: number } | null>>;
+    selectedIds: Set<string>;
 }
 
-
-export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedId }: useMouseMoveProps) {
+export function useMouseMove({
+    throttledSetAwareness,
+    saveThumbnail,
+    setViewport,
+    tool,
+    yjsShapesMap,
+    options,
+    setSelectedIds,
+    setSelectionBox,
+    selectedIds
+}: useMouseMoveProps) {
 
     const [currentShapeData, setCurrentShapeData] = useState<CurrentShapeData | null>(null);
     const [isDrawing, setIsDrawing] = useState(false);
 
+    // Helper to generate fresh context
+    const createContext = (stage: any, e: KonvaEventObject<MouseEvent>): ToolInteractionContext => ({
+        stage,
+        yjsShapesMap,
+        saveThumbnail,
+        pointerPos: stage.getPointerPosition() || null,
+        target: e.target as any,
+        setSelectedIds,
+        setSelectionBox,
+        selectedIds,
+        originalEvent: e.evt,
+        viewport: { scale: stage.scaleX() || 1 }
+    });
 
     const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {
         const logic = TOOLS[tool];
@@ -33,19 +53,10 @@ export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport
 
         const stage = e.target.getStage();
         const pos = stage?.getRelativePointerPosition();
-        const pointerPos = stage?.getPointerPosition();
 
         if (pos && stage) {
             setIsDrawing(true);
-            const context: ToolInteractionContext = {
-                stage,
-                yjsShapesMap,
-                saveThumbnail,
-                pointerPos: pointerPos || null,
-                setSelectedId,
-                target: e.target as any,
-            };
-
+            const context = createContext(stage, e);
             const newData = logic.onDown(pos.x, pos.y, options, context);
             setCurrentShapeData(newData);
         }
@@ -59,29 +70,37 @@ export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport
         const pos = stage?.getRelativePointerPosition();
 
         if (pos && stage) {
-            const context: ToolInteractionContext = {
-                stage,
-                yjsShapesMap,
-                saveThumbnail,
-                pointerPos: stage.getPointerPosition() || null,
-                setSelectedId,
-            };
+            const context = createContext(stage, e);
             const newData = logic.onMove(pos.x, pos.y, currentShapeData, context);
             setCurrentShapeData(newData);
         }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: KonvaEventObject<MouseEvent>) => {
         const logic = TOOLS[tool];
         if (!isDrawing || !logic || !yjsShapesMap || !currentShapeData) return;
-        setIsDrawing(false);
-        const uniqueId = crypto.randomUUID();
-        const finalShape = logic.onUp(currentShapeData, uniqueId);
-        if (finalShape) {
-            yjsShapesMap.set(uniqueId, finalShape);
+
+        const stage = e.target.getStage();
+        if (stage) {
+            setIsDrawing(false);
+            const uniqueId = crypto.randomUUID();
+            const context = createContext(stage, e);
+            const finalShape = logic.onUp(currentShapeData, uniqueId, context);
+
+            if (finalShape) {
+                if (!finalShape.id) finalShape.id = uniqueId;
+                yjsShapesMap.set(finalShape.id, finalShape);
+            }
+
+            const pos = stage.getRelativePointerPosition();
+            if (pos) {
+                throttledSetAwareness(pos.x, pos.y, null);
+            } else {
+                throttledSetAwareness(null, null, null);
+            }
         }
+
         setCurrentShapeData(null);
-        throttledSetAwareness(null, null, null);
         saveThumbnail();
     };
 
@@ -106,7 +125,6 @@ export function useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport
             setViewport(prev => ({ ...prev, x: e.target.x(), y: e.target.y() }))
         }
     };
-
 
     return ({ mouseHandlers: { onMouseDown: handleMouseDown, onMouseMove: handleMouseMove, onMouseUp: handleMouseUp, onDragEnd: handleDragEnd, onStageLeave: handleStageMouseLeave, onStageMouseMove: handleStageMouseMove }, currentShapeData })
 }

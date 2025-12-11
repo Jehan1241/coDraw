@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "react-konva-utils": "^2.0.0"
+  }
+}

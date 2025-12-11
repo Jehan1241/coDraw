@@ -4,6 +4,7 @@ import type { Stage } from "konva/lib/Stage";
 import type { Vector2d } from "konva/lib/types";
 import type { YMap } from "node_modules/yjs/dist/src/internals";
 import type { Node } from "konva/lib/Node";
+import type { Dispatch, SetStateAction } from "react";
 
 export type CurrentShapeData = number[] | any;
 
@@ -12,8 +13,12 @@ export interface ToolInteractionContext {
     yjsShapesMap: YMap<SyncedShape> | null;
     saveThumbnail: () => void;
     pointerPos: Vector2d | null;
-    setSelectedId: (id: string | null) => void;
     target?: Node;
+    setSelectedIds: Dispatch<SetStateAction<Set<string>>>;
+    setSelectionBox: Dispatch<SetStateAction<{ x: number, y: number, width: number, height: number } | null>>;
+    selectedIds: Set<string>;
+    originalEvent: MouseEvent | TouchEvent;
+    viewport: { scale: number };
 }
 
 export interface ToolLogic {
@@ -24,5 +29,10 @@ export interface ToolLogic {
         currentData: CurrentShapeData,
         context: ToolInteractionContext
     ) => CurrentShapeData;
-    onUp: (currentData: CurrentShapeData, id: string) => SyncedShape | null;
+
+    onUp: (
+        currentData: CurrentShapeData,
+        id: string,
+        context: ToolInteractionContext
+    ) => SyncedShape | null;
 }

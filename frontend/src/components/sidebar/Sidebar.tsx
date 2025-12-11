@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
   MousePointer2, Square, Pencil, Undo2, Redo2, Eraser, Hand,
+  Baseline,
 } from "lucide-react";
 import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { useState } from "react";
@@ -9,6 +10,7 @@ import { Input } from "../ui/input";
 import { getDisplayColor } from "../CanvasArea";
 import { useTheme } from "../ui/theme-provider";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { TOOL_HOTKEYS } from "@/hooks/useHotkeys";
 
 interface SidebarProps {
   tool: Tool;
@@ -17,25 +19,28 @@ interface SidebarProps {
   setOptions: (opts: ToolOptions) => void;
   onUndo: () => void;
   onRedo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
 }
 
 
-const toolTipText = { select: "Select", pan: "Pan", rectangle: "Rectangle", pencil: "Pencil", eraser: "Eraser" }
+const toolTipText = { select: "Select", pan: "Pan", rectangle: "Rectangle", pencil: "Pencil", eraser: "Eraser", text: "Text" }
 
 
 
-export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: SidebarProps) {
+export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo, canRedo, canUndo }: SidebarProps) {
 
   const ToolButton = ({ targetTool, icon: Icon }: { targetTool: Tool, icon: any }) => (
     <Tooltip delayDuration={500}>
       <TooltipTrigger asChild>
         <Button
           variant={tool === targetTool ? "secondary" : "ghost"}
-          size="icon"
+          size="icon-lg"
           onClick={() => setTool(targetTool)}
-          className={tool === targetTool ? "bg-accent" : "text-foreground /60"}
+          className={tool === targetTool ? "bg-accent relative" : "text-foreground /60 relative"}
         >
           <Icon className="w-5 h-5" />
+          <p className="absolute text-[9px] bottom-0.5 right-0.5 text-muted-foreground">{TOOL_HOTKEYS[targetTool]}</p>
         </Button >
       </TooltipTrigger>
       <TooltipContent side="right">
@@ -126,11 +131,12 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: 
           <ToolButton targetTool="rectangle" icon={Square} />
           <ToolButton targetTool="pencil" icon={Pencil} />
           <ToolButton targetTool="eraser" icon={Eraser} />
+          <ToolButton targetTool="text" icon={Baseline} />
 
           <Tooltip delayDuration={500}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onUndo}>
-                <Undo2 className="w-5 h-5 text-gray-300" />
+              <Button variant="ghost" size="icon-lg" onClick={onUndo} disabled={!canUndo}>
+                <Undo2 className="w-5 h-5 " />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">
@@ -140,8 +146,8 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo }: 
 
           <Tooltip delayDuration={500}>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" onClick={onRedo}>
-                <Redo2 className="w-5 h-5 text-gray-300" />
+              <Button variant="ghost" size="icon-lg" onClick={onRedo} disabled={!canRedo}>
+                <Redo2 className="w-5 h-5 " />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="right">

@@ -18,7 +18,7 @@ export type SyncedShape = {
   id: string;
   type: "line" | "rect" | "text";
 
-  // Common Transform Props (Used by Rect & Text)
+  // Common
   x?: number;
   y?: number;
   rotation?: number;
@@ -28,8 +28,8 @@ export type SyncedShape = {
   // Common Style Props
   strokeColor?: string;
   strokeWidth?: number;
-  strokeType?: string; // 'solid' | 'dashed' | 'wobbly'
-  fill?: string;       // Color string or "transparent"
+  strokeType?: string;
+  fill?: string;
 
   // Line Specific
   points?: number[];
@@ -42,8 +42,12 @@ export type SyncedShape = {
   text?: string;
   fontSize?: number;
   fontFamily?: string;
-  align?: string;      // 'left' | 'center' | 'right'
+  align?: string;
   lineHeight?: number;
+
+  fontWeight?: string;
+  fontStyle?: string;
+  textDecoration?: string;
 };
 
 

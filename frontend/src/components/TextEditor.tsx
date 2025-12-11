@@ -1,18 +1,21 @@
 import React, { useEffect, useRef, useLayoutEffect } from "react";
 import { Html } from "react-konva-utils";
+import { TextToolbar } from "./TextToolbar";
 
 interface TextEditorProps {
     shape: any;
-    scale: number; // Passed from CanvasArea (viewport.scale)
+    scale: number;
     onChange: (val: string) => void;
+    onAttributesChange: (attrs: any) => void;
     onFinish: () => void;
 }
 
-export const TextEditor = ({ shape, scale, onChange, onFinish }: TextEditorProps) => {
+export const TextEditor = ({ shape, scale, onChange, onAttributesChange, onFinish }: TextEditorProps) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null); // <--- 1. NEW REF FOR CONTAINER
 
-    // 1. MANUAL STYLES (Counter-Scaling)
-    // We multiply by 'scale' here because we are about to force the DOM element to Scale 1.
+    // ... (Styles and Auto-Resize useLayoutEffect remain the same) ...
+    // Calculate visualWidth, visualFontSize, style object...
     const visualFontSize = (shape.fontSize || 24) * scale;
     const visualWidth = (shape.width || 200) * scale;
     const visualLineHeight = (shape.lineHeight || 1);
@@ -20,13 +23,16 @@ export const TextEditor = ({ shape, scale, onChange, onFinish }: TextEditorProps
     const style: React.CSSProperties = {
         width: `${visualWidth}px`,
         minWidth: `${visualWidth}px`,
-
         fontSize: `${visualFontSize}px`,
         lineHeight: visualLineHeight,
-
         fontFamily: shape.fontFamily || "sans-serif",
-        color: shape.fill,
         textAlign: shape.align || "left",
+        color: shape.fill,
+
+        // Dynamic Styles
+        fontWeight: shape.fontWeight || 'normal',
+        fontStyle: shape.fontStyle || 'normal',
+        textDecoration: shape.textDecoration || 'none',
 
         background: "transparent",
         border: "none",
@@ -39,21 +45,22 @@ export const TextEditor = ({ shape, scale, onChange, onFinish }: TextEditorProps
         transformOrigin: "left top"
     };
 
-    // 2. AUTO-RESIZE HEIGHT
     useLayoutEffect(() => {
         const tx = textareaRef.current;
         if (tx) {
             tx.style.height = "0px";
             tx.style.height = `${tx.scrollHeight}px`;
         }
-    }, [shape.text, visualFontSize]);
+    }, [shape.text, visualFontSize, shape.fontWeight, shape.width]);
 
-    // 3. CLICK OUTSIDE
+    // 3. UPDATED CLICK OUTSIDE LOGIC
     useEffect(() => {
         let isMounted = true;
         const handleClickOutside = (e: MouseEvent) => {
             if (!isMounted) return;
-            if (textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
+
+            // FIX: Check if click is inside the CONTAINER (Toolbar + Textarea)
+            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 onFinish();
             }
         };
@@ -71,27 +78,23 @@ export const TextEditor = ({ shape, scale, onChange, onFinish }: TextEditorProps
         <Html
             groupProps={{ x: shape.x, y: shape.y, rotation: shape.rotation }}
             divProps={{ style: { opacity: 1 } }}
-
-            // 4. THE FIX: Return an Object, not a String
-            // We strip out the scale calculated by Konva and force it to 1.
-            transformFunc={(attrs) => {
-                return {
-                    ...attrs,
-                    scaleX: 1,
-                    scaleY: 1,
-                };
-            }}
+            transformFunc={(attrs) => ({ ...attrs, scaleX: 1, scaleY: 1 })}
         >
-            <textarea
-                ref={textareaRef}
-                value={shape.text}
-                onChange={(e) => onChange(e.target.value)}
-                style={style}
-                autoFocus
-                onKeyDown={(e) => {
-                    if (e.key === "Escape") onFinish();
-                }}
-            />
+            {/* 4. WRAP EVERYTHING IN A DIV WITH REF */}
+            <div ref={containerRef}>
+                <TextToolbar shape={shape} onUpdate={onAttributesChange} />
+
+                <textarea
+                    ref={textareaRef}
+                    value={shape.text}
+                    onChange={(e) => onChange(e.target.value)}
+                    style={style}
+                    autoFocus
+                    onKeyDown={(e) => {
+                        if (e.key === "Escape") onFinish();
+                    }}
+                />
+            </div>
         </Html>
     );
 };

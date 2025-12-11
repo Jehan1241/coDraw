@@ -96,5 +96,15 @@ export function useTextTool({ transformerRef, viewport, editingId, yjsShapesMap,
         }
     }, [selectedIds, yjsShapesMap, editingId]);
 
-    return ({ handleTextTransform, handleTextChange, handleFinish, handleTextTransformEnd })
+    const handleAttributeChange = (attrs: any) => {
+        if (editingId && yjsShapesMap) {
+            const shape = yjsShapesMap.get(editingId);
+            if (shape) {
+                // Merge existing shape with new attributes
+                yjsShapesMap.set(editingId, { ...shape, ...attrs });
+            }
+        }
+    };
+
+    return ({ handleTextTransform, handleTextChange, handleFinish, handleTextTransformEnd, handleAttributeChange })
 }

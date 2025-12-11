@@ -28,13 +28,17 @@ interface CanvasAreaProps {
 }
 
 export const getDisplayColor = (color: string | undefined, theme: string | undefined) => {
-  if (!color) return "black";
   const isDark = theme === "dark" ||
     (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  if (!isDark) return color;
+  if (!color || color === "") {
+    return isDark ? "#ffffff" : "#000000";
+  }
   const c = color.toLowerCase();
-  if (c === "black" || c === "#000000") return "#ffffff";
-  if (c === "white" || c === "#ffffff") return "#000000";
+  if (isDark) {
+    if (c === "#000000" || c === "black") return "#ffffff";
+  } else {
+    if (c === "#ffffff" || c === "white") return "#000000";
+  }
   return color;
 };
 
@@ -73,7 +77,7 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
   const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedIds, setSelectionBox, selectedIds });
-  const { handleTextTransform, handleTextChange, handleFinish, handleTextTransformEnd } = useTextTool({ transformerRef, viewport, editingId, yjsShapesMap, setTool, tool, setEditingId, selectedIds })
+  const { handleTextTransform, handleTextChange, handleFinish, handleTextTransformEnd, handleAttributeChange } = useTextTool({ transformerRef, viewport, editingId, yjsShapesMap, setTool, tool, setEditingId, selectedIds })
   useSelectionShortcuts({
     selectedIds,
     setSelectedIds,
@@ -180,24 +184,22 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
     if (shape.type === 'text') {
       const isEditing = editingId === shape.id;
       const currentZoom = viewport.scale;
+      const konvaFontStyle = `${shape.fontWeight || 'normal'} ${shape.fontStyle || 'normal'}`;
 
       return (
         <React.Fragment key={shape.id}>
           <KonvaText
             {...commonProps}
             strokeEnabled={false}
-            fill={finalStroke}
             text={shape.text || "\u200b"}
-
-            // High-Res Rendering Logic
+            fill={finalFill}
+            fontStyle={konvaFontStyle}
+            textDecoration={shape.textDecoration}
             fontSize={(shape.fontSize || 24) * currentZoom}
             width={shape.width * currentZoom}
             scaleX={1 / currentZoom}
             scaleY={1 / currentZoom}
-
-            // The Live Logic
             onTransform={handleTextTransform}
-
             fontFamily={shape.fontFamily || "sans-serif"}
             opacity={isEditing ? 0 : 1}
             onDblClick={() => setEditingId(shape.id)}
@@ -205,8 +207,9 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
 
           {isEditing && (
             <TextEditor
-              shape={shape}
+              shape={{ ...shape, fill: finalFill }}
               scale={currentZoom}
+              onAttributesChange={handleAttributeChange}
               onChange={handleTextChange}
               onFinish={handleFinish}
             />

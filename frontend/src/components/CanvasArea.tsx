@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Stage, Layer, Line, Rect, Transformer } from "react-konva";
+import { Stage, Layer, Line, Rect, Transformer, Text as KonvaText } from "react-konva";
 import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { Cursor } from "@/components/ui/cursor";
 import { BoardStorage } from "../utils/boardStorage";
@@ -14,10 +14,12 @@ import { Button } from "./ui/button";
 import { useTheme } from "./ui/theme-provider";
 import { getCursorStyle, getResizeCursor, getRotateCursor } from "@/utils/cursorStyle";
 import { useSelectionShortcuts } from "@/hooks/useSelectionShortcuts";
+import { TextEditor } from "./TextEditor";
 
 
 interface CanvasAreaProps {
   tool: Tool;
+  setTool: (tool: Tool) => void;
   options: ToolOptions;
   boardId: string;
   whiteboard: ReturnType<typeof useWhiteboard>;
@@ -41,7 +43,7 @@ const getDashArray = (type?: string, width?: number) => {
   return undefined;
 };
 
-export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaProps) {
+export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: CanvasAreaProps) {
   const stageRef = useRef<any>(null);
   const transformerRef = useRef<any>(null);
   const { theme } = useTheme();
@@ -67,6 +69,46 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
   const { yjsShapesMap, remoteLines, smoothCursors, syncedShapes, throttledSetAwareness } = whiteboard;
   const { zoomToCenter, viewport, setViewport, handleWheel } = useZoom({ stageRef, stageSize, boardId })
   const { mouseHandlers, currentShapeData } = useMouseMove({ throttledSetAwareness, saveThumbnail, setViewport, tool, yjsShapesMap, options, setSelectedIds, setSelectionBox, selectedIds });
+
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // If we are already editing, don't interrupt
+    if (editingId) return;
+
+    // If Text Tool is active + exactly 1 item selected + that item is text -> Edit it
+    if (tool === 'text' && selectedIds.size === 1) {
+      const id = selectedIds.values().next().value as string;
+      const shape = yjsShapesMap?.get(id);
+      if (shape && shape.type === 'text') {
+        setEditingId(id);
+      }
+    }
+  }, [selectedIds, yjsShapesMap, editingId]);
+
+  const handleTextChange = (val: string) => {
+    if (editingId && yjsShapesMap) {
+      const shape = yjsShapesMap.get(editingId);
+      if (shape) {
+        // We explicitly set 'id' to satisfy TypeScript
+        yjsShapesMap.set(editingId, { ...shape, text: val, id: editingId });
+      }
+    }
+  };
+
+  // C. Finish Editing (Cleanup)
+  const handleFinish = () => {
+    if (editingId && yjsShapesMap) {
+      const shape = yjsShapesMap.get(editingId);
+      // Delete if empty
+      if (shape && (!shape.text || shape.text.trim() === "")) {
+        yjsShapesMap.delete(editingId);
+      }
+    }
+    setEditingId(null);
+    setTool('select'); // <--- Switches to Select Mode automatically
+  };
 
   useSelectionShortcuts({
     selectedIds,
@@ -120,6 +162,27 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
           scaleY: node.scaleY(),
         });
       }
+
+      else if (shape.type === 'text') {
+        const scaleX = node.scaleX();
+        const scaleY = node.scaleY();
+
+        // Reset the node scale immediately so it doesn't look distorted
+        node.scaleX(1);
+        node.scaleY(1);
+
+        yjsShapesMap.set(shape.id, {
+          ...baseAttrs,
+          // Calculate new Font Size based on vertical scale
+          fontSize: Math.max(12, (shape.fontSize || 24) * scaleY),
+          // Calculate new Width based on horizontal scale
+          width: Math.max(20, node.width() * scaleX),
+          // Reset scales to 1
+          scaleX: 1,
+          scaleY: 1,
+        });
+      }
+
       else {
         const scaleX = node.scaleX();
         const scaleY = node.scaleY();
@@ -165,6 +228,35 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
       onTransformEnd: handleTransformEnd,
       ...extraProps
     };
+
+    if (shape.type === 'text') {
+      // 1. If Editing: Show the HTML Overlay
+      if (editingId === shape.id) {
+        return (
+          <TextEditor
+            key={shape.id}
+            scale={viewport.scale}
+            shape={shape}
+            onChange={handleTextChange}
+            onFinish={handleFinish}
+          />
+        );
+      }
+
+      // 2. If Not Editing: Show standard Konva Text
+      return (
+        <KonvaText
+          key={shape.id}
+          {...commonProps}
+          text={shape.text}
+          fontSize={shape.fontSize || 24}
+          fontFamily={shape.fontFamily || "sans-serif"}
+          fill={finalStroke} // Reuse stroke color for text
+          // Double click to edit manually
+          onDblClick={() => setEditingId(shape.id)}
+        />
+      );
+    }
 
     if (shape.type === 'rect') {
       return (
@@ -240,7 +332,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
         <Layer>
           {/* 3. RENDER SAVED SHAPES */}
           {syncedShapes.map((shape) => {
-            if (shape.type === "line" || shape.type === "rect") {
+            if (shape.type === "line" || shape.type === "rect" || shape.type === "text") {
               const isDrawingTool = tool === "pencil" || tool === "rectangle";
               return renderShape(shape, {
                 listening: !isDrawingTool // Disable listening if drawing to draw rect in rect
@@ -279,7 +371,7 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
               listening={false}
             />
           )}
-          <Transformer
+          {!editingId && (<Transformer
             ref={transformerRef}
             rotateAnchorCursor={rotateCursor}
             anchorStyleFunc={(anchor: any) => {
@@ -295,7 +387,8 @@ export function CanvasArea({ tool, boardId, whiteboard, options }: CanvasAreaPro
               if (newBox.width < 5 || newBox.height < 5) return oldBox;
               return newBox;
             }}
-          />
+          />)}
+
         </Layer>
       </Stage>
 

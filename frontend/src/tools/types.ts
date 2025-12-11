@@ -18,6 +18,7 @@ export interface ToolInteractionContext {
     setSelectionBox: Dispatch<SetStateAction<{ x: number, y: number, width: number, height: number } | null>>;
     selectedIds: Set<string>;
     originalEvent: MouseEvent | TouchEvent;
+    viewport: { scale: number };
 }
 
 export interface ToolLogic {

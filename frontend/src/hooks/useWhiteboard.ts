@@ -16,18 +16,34 @@ interface CursorData {
 
 export type SyncedShape = {
   id: string;
-  type: "line" | "rect";
-  // Line props
-  points?: number[];
-  strokeColor?: string;
-  strokeWidth?: number;
-  strokeType?: string
-  // Rect props
+  type: "line" | "rect" | "text";
+
+  // Common Transform Props (Used by Rect & Text)
   x?: number;
   y?: number;
+  rotation?: number;
+  scaleX?: number;
+  scaleY?: number;
+
+  // Common Style Props
+  strokeColor?: string;
+  strokeWidth?: number;
+  strokeType?: string; // 'solid' | 'dashed' | 'wobbly'
+  fill?: string;       // Color string or "transparent"
+
+  // Line Specific
+  points?: number[];
+
+  // Rect Specific
   width?: number;
   height?: number;
-  fill?: string;
+
+  // Text Specific
+  text?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  align?: string;      // 'left' | 'center' | 'right'
+  lineHeight?: number;
 };
 
 

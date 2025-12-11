@@ -44,6 +44,7 @@ export function useMouseMove({
         setSelectionBox,
         selectedIds,
         originalEvent: e.evt,
+        viewport: { scale: stage.scaleX() || 1 }
     });
 
     const handleMouseDown = (e: KonvaEventObject<MouseEvent>) => {

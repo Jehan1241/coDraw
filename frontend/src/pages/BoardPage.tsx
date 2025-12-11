@@ -8,7 +8,7 @@ import { BoardStorage } from "@/utils/boardStorage";
 import { useWhiteboard } from '@/hooks/useWhiteboard';
 import { useHotkeys } from '@/hooks/useHotkeys';
 
-export type Tool = "select" | "pencil" | "rectangle" | "eraser" | "pan";
+export type Tool = "select" | "pencil" | "rectangle" | "eraser" | "pan" | "text";
 export type ToolOptions = {
     strokeType?: 'normal' | 'wobbly' | 'dashed' | 'dotted';
     strokeColor?: string;
@@ -52,6 +52,7 @@ export function BoardPage() {
                 <main className="absolute inset-0 w-full h-full z-0">
                     <CanvasArea
                         tool={tool}
+                        setTool={setTool}
                         options={options}
                         boardId={boardId}
                         whiteboard={whiteboard}

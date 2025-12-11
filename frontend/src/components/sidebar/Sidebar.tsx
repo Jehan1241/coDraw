@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import {
   MousePointer2, Square, Pencil, Undo2, Redo2, Eraser, Hand,
+  Baseline,
 } from "lucide-react";
 import type { Tool, ToolOptions } from "@/pages/BoardPage";
 import { useState } from "react";
@@ -23,7 +24,7 @@ interface SidebarProps {
 }
 
 
-const toolTipText = { select: "Select", pan: "Pan", rectangle: "Rectangle", pencil: "Pencil", eraser: "Eraser" }
+const toolTipText = { select: "Select", pan: "Pan", rectangle: "Rectangle", pencil: "Pencil", eraser: "Eraser", text: "Text" }
 
 
 
@@ -130,6 +131,7 @@ export function Sidebar({ tool, setTool, options, setOptions, onUndo, onRedo, ca
           <ToolButton targetTool="rectangle" icon={Square} />
           <ToolButton targetTool="pencil" icon={Pencil} />
           <ToolButton targetTool="eraser" icon={Eraser} />
+          <ToolButton targetTool="text" icon={Baseline} />
 
           <Tooltip delayDuration={500}>
             <TooltipTrigger asChild>

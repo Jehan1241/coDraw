@@ -91,7 +91,7 @@ export function CanvasArea({ tool, setTool, boardId, whiteboard, options }: Canv
       transformerRef.current.nodes(nodes);
     }
     transformerRef.current.getLayer()?.batchDraw();
-  }, [selectedIds, syncedShapes]);
+  }, [selectedIds, syncedShapes, editingId]);
 
   const ERASER_SCREEN_SIZE = 30;
 

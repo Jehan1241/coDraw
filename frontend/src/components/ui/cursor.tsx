@@ -41,6 +41,12 @@ const TOOL_CONFIG: Record<string, { path: string; scale: number; offsetX: number
         scale: 1.875,
         offsetX: 10,
         offsetY: 33
+    },
+    text: {
+        path: "M17 22h-1a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4h1 M7 22h1a4 4 0 0 0 4-4v-1 M7 2h1a4 4 0 0 1 4 4v1",
+        scale: 1,
+        offsetX: 12,
+        offsetY: 12
     }
 };
 

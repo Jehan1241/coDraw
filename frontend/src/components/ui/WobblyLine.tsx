@@ -1,4 +1,3 @@
-// src/components/WobblyLine.tsx
 import { Path } from "react-konva";
 import { getFreehandPath } from "@/utils/freehand";
 import { useMemo } from "react";
@@ -19,15 +18,12 @@ export function WobblyLine({ points, color, width, ...props }: WobblyLineProps) 
     return (
         <Path
             {...props}
+            points={points}
             data={pathData}
             fill={color}
-
-            // FIX: Enable stroke so hitStrokeWidth works, but make it invisible
             stroke="transparent"
             strokeEnabled={true}
-            // The visual stroke width should be 0 so it doesn't add artifacts
             strokeWidth={0}
-
             lineCap="round"
             lineJoin="round"
         />

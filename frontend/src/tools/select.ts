@@ -95,11 +95,16 @@ export const SelectTool: ToolLogic = {
             children.forEach((node: any) => {
                 if (!node.id() || node.name() !== "whiteboard-object" || !node.isVisible() || !node.listening()) return;
 
+                // 1. Fast Check: Bounding Box
                 const shapeRect = node.getClientRect({ relativeTo: layer, skipShadow: true });
                 if (!Konva.Util.haveIntersection(box, shapeRect)) return;
 
-                if (node.getClassName() === 'Line' && node.points()) {
-                    const points = node.points();
+                // 2. Precise Check: Segment Intersection
+                // We attempt to get points from a function (Konva.Line) OR the attributes (WobblyLine/Path)
+                const points = typeof node.points === 'function' ? node.points() : node.attrs.points;
+
+                // If we found a valid points array, check exact segments
+                if (points && Array.isArray(points)) {
                     let isIntersecting = false;
                     const transform = node.getTransform();
 
@@ -115,6 +120,7 @@ export const SelectTool: ToolLogic = {
                     if (isIntersecting) newSelection.add(node.id());
                 }
                 else {
+                    // It's a Rect, Text, or generic shape -> The Bounding Box check (step 1) is sufficient
                     newSelection.add(node.id());
                 }
             });

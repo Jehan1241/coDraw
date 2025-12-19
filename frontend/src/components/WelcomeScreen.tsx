@@ -25,9 +25,6 @@ export function WelcomeScreen() {
                     {/* Action Menu: Re-enable pointer events here so buttons work */}
                     <div className="flex gap-3 justify-center w-full text-muted-foreground pointer-events-auto">
                         <Button variant={"outline"} className="gap-2">
-                            <FolderOpen className="w-4 h-4" /> Import
-                        </Button>
-                        <Button variant={"outline"} className="gap-2">
                             <Github className="w-4 h-4" /> Github
                         </Button>
                     </div>

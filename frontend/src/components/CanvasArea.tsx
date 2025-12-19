@@ -290,7 +290,7 @@ export function CanvasArea({
                 />
             );
         }
-        if (shape.strokeType === "wobbly" && shape.points) {
+        if (shape.strokeType === "wobbly" && shape.points && tool!=="magic") {
             return (
                 <WobblyLine
                     key={shape.id || "temp"}
@@ -298,6 +298,8 @@ export function CanvasArea({
                     points={shape.points || []}
                     color={finalStroke || "black"}
                     width={shape.strokeWidth || 2}
+                    fill={finalFill}
+                    closed={shape.closed}
                 />
             );
         }
@@ -311,6 +313,7 @@ export function CanvasArea({
                     dash={getDashArray(shape.strokeType, shape.strokeWidth)}
                     tension={shape.tension !== undefined ? shape.tension : 0.5}
                     closed={shape.closed}
+                    fill={finalFill}
                 />
             );
         }

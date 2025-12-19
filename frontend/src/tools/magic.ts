@@ -11,6 +11,7 @@ export const MagicTool: ToolLogic = {
         strokeColor: options.strokeColor,
         strokeWidth: options.strokeWidth,
         strokeType: options.strokeType,
+        fill: options.fill
     }),
 
     onMove: (x, y, currentData) => ({
@@ -108,10 +109,8 @@ export const MagicTool: ToolLogic = {
             strokeColor: currentData.strokeColor,
             strokeWidth: currentData.strokeWidth,
             strokeType: currentData.strokeType,
-            fill: "transparent", 
+            fill: currentData.fill, 
             isMagic: true,
-            // CRITICAL: 0 makes lines sharp. 
-            // Since we generate many points for circle, 0 looks smooth there too.
             tension: 0, 
             closed: true, 
         } as SyncedShape;

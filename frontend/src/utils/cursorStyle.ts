@@ -45,6 +45,11 @@ export function getCursorStyle(theme: string, tool: string) {
     return `url("data:image/svg+xml;utf8,${pencilSvg}") 0 32, auto`;
   }
 
+  if (tool === "magic") {
+    const pencilSvg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="${cursorColor}"  fill-opacity="0.15" stroke="${cursorColor}" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pencil-icon lucide-pencil"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></svg>`)
+    return `url("data:image/svg+xml;utf8,${pencilSvg}") 0 32, auto`;
+  }
+
   if (tool === "select") {
     const selectSvg = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="${cursorColor}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mouse-pointer2-icon lucide-mouse-pointer-2"><path d="M4.037 4.688a.495.495 0 0 1 .651-.651l16 6.5a.5.5 0 0 1-.063.947l-6.124 1.58a2 2 0 0 0-1.438 1.435l-1.579 6.126a.5.5 0 0 1-.947.063z"/></svg>`)
     return `url("data:image/svg+xml;utf8,${selectSvg}") 3 3, auto`;

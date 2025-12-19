@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import {
     Stage,
     Layer,
@@ -144,6 +144,44 @@ export function CanvasArea({
         yjsShapesMap: whiteboard.yjsShapesMap,
     });
 
+    const visibleShapes = useMemo(() => {
+        const BUFFER = 1000;
+
+        // Calculate Viewport Box once per frame
+        const visibleLeft = -viewport.x / viewport.scale - BUFFER;
+        const visibleTop = -viewport.y / viewport.scale - BUFFER;
+        const visibleRight = (stageSize.width - viewport.x) / viewport.scale + BUFFER;
+        const visibleBottom = (stageSize.height - viewport.y) / viewport.scale + BUFFER;
+
+        return syncedShapes.filter((shape) => {
+            if (selectedIds.has(shape.id)) return true;
+
+            //used cached bound if there
+            if (shape.bounds) {
+                return (
+                    shape.bounds.maxX >= visibleLeft &&
+                    shape.bounds.minX <= visibleRight &&
+                    shape.bounds.maxY >= visibleTop &&
+                    shape.bounds.minY <= visibleBottom
+                );
+            }
+
+            //fallback
+            const x = shape.x || 0;
+            const y = shape.y || 0;
+            const w = shape.width || 0;
+            const h = shape.height || 0;
+
+            return (
+                x + w >= visibleLeft &&
+                x <= visibleRight &&
+                y + h >= visibleTop &&
+                y <= visibleBottom
+            );
+        });
+    }, [syncedShapes, viewport, stageSize, selectedIds]);
+
+
     useEffect(() => {
         if (!transformerRef.current || !stageRef.current) return;
         transformerRef.current.nodes([]);
@@ -155,6 +193,42 @@ export function CanvasArea({
         }
         transformerRef.current.getLayer()?.batchDraw();
     }, [selectedIds, syncedShapes, editingId]);
+
+
+    //window.multiplyShapes() to stress test
+    useEffect(() => {
+        // @ts-ignore
+        window.multiplyShapes = () => {
+            const map = whiteboard.yjsShapesMap;
+            if (!map) return
+            const doc = map.doc;
+            const currentShapes = Array.from(map.values());
+
+            if (!doc || currentShapes.length === 0) {
+                console.warn("Draw something first");
+                return;
+            }
+            console.log(`Multiplying ${currentShapes.length} shapes by 1000...`);
+            doc.transact(() => {
+                for (let i = 0; i < 1000; i++) {
+                    currentShapes.forEach((shape: any) => {
+                        const newId = crypto.randomUUID();
+                        // Spread shapes WIDELY so culling can actually work
+                        const offsetX = (Math.random() - 0.5) * 5000;
+                        const offsetY = (Math.random() - 0.5) * 5000;
+                        const newShape = {
+                            ...shape,
+                            id: newId,
+                            x: (shape.x || 0) + offsetX,
+                            y: (shape.y || 0) + offsetY,
+                        };
+                        map.set(newId, newShape);
+                    });
+                }
+            });
+            console.log("Done.");
+        };
+    }, [whiteboard.yjsShapesMap]);
 
     const ERASER_SCREEN_SIZE = 30;
 
@@ -179,11 +253,21 @@ export function CanvasArea({
             if (!yjsShapesMap) return;
             const node = e.target;
 
+            const box = node.getClientRect({ relativeTo: node.getParent() });
+
+            const newBounds = {
+                minX: box.x,
+                maxX: box.x + box.width,
+                minY: box.y,
+                maxY: box.y + box.height,
+            };
+
             const baseAttrs = {
                 ...shape,
                 x: node.x(),
                 y: node.y(),
                 rotation: node.rotation(),
+                bounds: newBounds
             };
 
             if (shape.type === "line" || shape.points) {
@@ -213,10 +297,29 @@ export function CanvasArea({
 
         const handleDragEnd = (e: any) => {
             if (!yjsShapesMap) return;
+
+            const newX = e.target.x();
+            const newY = e.target.y();
+
+            const dx = newX - (shape.x || 0);
+            const dy = newY - (shape.y || 0);
+
+            let newBounds = shape.bounds;
+
+            if (newBounds) {
+                newBounds = {
+                    minX: newBounds.minX + dx,
+                    maxX: newBounds.maxX + dx,
+                    minY: newBounds.minY + dy,
+                    maxY: newBounds.maxY + dy,
+                };
+            }
+
             yjsShapesMap.set(shape.id, {
                 ...shape,
-                x: e.target.x(),
-                y: e.target.y(),
+                x: newX,
+                y: newY,
+                bounds: newBounds,
             });
         };
 
@@ -290,7 +393,7 @@ export function CanvasArea({
                 />
             );
         }
-        if (shape.strokeType === "wobbly" && shape.points && tool!=="magic") {
+        if (shape.strokeType === "wobbly" && shape.points && tool !== "magic") {
             return (
                 <WobblyLine
                     key={shape.id || "temp"}
@@ -353,8 +456,8 @@ export function CanvasArea({
                 onMouseLeave={mouseHandlers.onStageLeave}
             >
                 <Layer>
-                    {/* 3. RENDER SAVED SHAPES */}
-                    {syncedShapes.map((shape) => {
+                    {/* Only map over visible shapes for better perf */}
+                    {visibleShapes.map((shape) => {
                         if (
                             shape.type === "line" ||
                             shape.type === "rect" ||
@@ -363,24 +466,25 @@ export function CanvasArea({
                             const isDrawingTool =
                                 tool === "pencil" || tool === "rectangle";
                             return renderShape(shape, {
-                                listening: !isDrawingTool, // Disable listening if drawing to draw rect in rect
+                                listening: !isDrawingTool,
                             });
                         }
                         return null;
                     })}
+
                     {Array.from(remoteLines.entries()).map(
                         ([clientID, shapeData]) =>
                             renderShape(shapeData, {
                                 key: `ghost-${clientID}`,
                                 opacity: 0.5,
-                                listening: false, // Click-through
+                                listening: false,
                             }),
                     )}
                     {currentShapeData &&
                         (currentShapeData.points ||
                             currentShapeData.type === "rect") &&
                         renderShape(currentShapeData)}
-                    {/* RENDER CURSORS */}
+
                     {Array.from(smoothCursors.entries()).map(
                         ([clientID, cursor]) => (
                             <Cursor
@@ -469,7 +573,7 @@ export function CanvasArea({
                     onClick={() => zoomToCenter(1)}
                     className="h-8 w-8"
                 >
-                    <Plus className="w-4 h-4 text-foreground  " />
+                    <Plus className="w-4 h-4 text-foreground  " />
                 </Button>
 
                 <div className="w-px h-4 mx-1" />

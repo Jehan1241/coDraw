@@ -1,4 +1,3 @@
-// src/components/ShareModal.tsx
 import {
   Dialog,
   DialogContent,
@@ -24,8 +23,6 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
   const { user, updateName } = useUser();
   const [copied, setCopied] = useState(false);
   const [nameInput, setNameInput] = useState(user.name);
-
-  // Sync local input with global user state when modal opens
   useEffect(() => {
     setNameInput(user.name);
   }, [user.name, isOpen]);
@@ -42,7 +39,6 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
     setNameInput(newName);
-    // Live update the context (which updates Hocuspocus instantly)
     if (newName.trim().length > 0) {
       updateName(newName);
     }
@@ -59,7 +55,6 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* 1. COPY LINK SECTION */}
           <div className="space-y-2">
             <Label>Board Link</Label>
             <div className="flex items-center space-x-2">
@@ -80,11 +75,9 @@ export function ShareModal({ isOpen, onClose }: ShareModalProps) {
 
           <div className="h-px bg-gray-100" />
 
-          {/* 2. IDENTITY SECTION */}
           <div className="space-y-2">
             <Label>Your Display Name</Label>
             <div className="flex items-center space-x-2">
-              {/* Color indicator */}
               <div
                 className="w-8 h-8 rounded-full border shrink-0"
                 style={{ backgroundColor: user.color }}

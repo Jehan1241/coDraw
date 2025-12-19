@@ -48,6 +48,9 @@ export type SyncedShape = {
   fontWeight?: string;
   fontStyle?: string;
   textDecoration?: string;
+
+  //for viewport cull
+  bounds?: { minX: number; maxX: number; minY: number; maxY: number };
 };
 
 

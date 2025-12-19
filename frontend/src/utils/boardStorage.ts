@@ -1,5 +1,3 @@
-// src/utils/boardStorage.ts
-
 export interface BoardMeta {
     id: string;
     name: string;
@@ -15,7 +13,6 @@ export interface BoardMeta {
 const STORAGE_KEY = "whiteboard_local_index";
 
 export const BoardStorage = {
-    // Get all boards, sorted by recent
     getAll: (): BoardMeta[] => {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return [];
@@ -32,7 +29,6 @@ export const BoardStorage = {
         return list.find((b) => b.id === id);
     },
 
-    // Add or Update a board
     update: (id: string, updates: Partial<BoardMeta>) => {
         const list = BoardStorage.getAll();
         const index = list.findIndex((b) => b.id === id);

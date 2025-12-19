@@ -14,11 +14,9 @@ function segmentIntersectsRect(
     x2: number, y2: number,
     rect: { x: number, y: number, width: number, height: number }
 ) {
-    //Check if either point is INSIDE the rect
     if (x1 >= rect.x && x1 <= rect.x + rect.width && y1 >= rect.y && y1 <= rect.y + rect.height) return true;
     if (x2 >= rect.x && x2 <= rect.x + rect.width && y2 >= rect.y && y2 <= rect.y + rect.height) return true;
 
-    //Check intersection with the 4 edges of the rect
     const rx = rect.x, ry = rect.y, rw = rect.width, rh = rect.height;
 
     if (linesIntersect(x1, y1, x2, y2, rx, ry, rx + rw, ry)) return true;
@@ -95,15 +93,11 @@ export const SelectTool: ToolLogic = {
             children.forEach((node: any) => {
                 if (!node.id() || node.name() !== "whiteboard-object" || !node.isVisible() || !node.listening()) return;
 
-                // 1. Fast Check: Bounding Box
                 const shapeRect = node.getClientRect({ relativeTo: layer, skipShadow: true });
                 if (!Konva.Util.haveIntersection(box, shapeRect)) return;
 
-                // 2. Precise Check: Segment Intersection
-                // We attempt to get points from a function (Konva.Line) OR the attributes (WobblyLine/Path)
                 const points = typeof node.points === 'function' ? node.points() : node.attrs.points;
 
-                // If we found a valid points array, check exact segments
                 if (points && Array.isArray(points)) {
                     let isIntersecting = false;
                     const transform = node.getTransform();
@@ -120,7 +114,6 @@ export const SelectTool: ToolLogic = {
                     if (isIntersecting) newSelection.add(node.id());
                 }
                 else {
-                    // It's a Rect, Text, or generic shape -> The Bounding Box check (step 1) is sufficient
                     newSelection.add(node.id());
                 }
             });

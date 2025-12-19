@@ -12,10 +12,8 @@ interface TextEditorProps {
 
 export const TextEditor = ({ shape, scale, onChange, onAttributesChange, onFinish }: TextEditorProps) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null); // <--- 1. NEW REF FOR CONTAINER
+    const containerRef = useRef<HTMLDivElement>(null);
 
-    // ... (Styles and Auto-Resize useLayoutEffect remain the same) ...
-    // Calculate visualWidth, visualFontSize, style object...
     const visualFontSize = (shape.fontSize || 24) * scale;
     const visualWidth = (shape.width || 200) * scale;
     const visualLineHeight = (shape.lineHeight || 1);
@@ -29,7 +27,6 @@ export const TextEditor = ({ shape, scale, onChange, onAttributesChange, onFinis
         textAlign: shape.align || "left",
         color: shape.fill,
 
-        // Dynamic Styles
         fontWeight: shape.fontWeight || 'normal',
         fontStyle: shape.fontStyle || 'normal',
         textDecoration: shape.textDecoration || 'none',
@@ -53,13 +50,11 @@ export const TextEditor = ({ shape, scale, onChange, onAttributesChange, onFinis
         }
     }, [shape.text, visualFontSize, shape.fontWeight, shape.width]);
 
-    // 3. UPDATED CLICK OUTSIDE LOGIC
     useEffect(() => {
         let isMounted = true;
         const handleClickOutside = (e: MouseEvent) => {
             if (!isMounted) return;
 
-            // FIX: Check if click is inside the CONTAINER (Toolbar + Textarea)
             if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
                 onFinish();
             }
@@ -80,7 +75,6 @@ export const TextEditor = ({ shape, scale, onChange, onAttributesChange, onFinis
             divProps={{ style: { opacity: 1 } }}
             transformFunc={(attrs) => ({ ...attrs, scaleX: 1, scaleY: 1 })}
         >
-            {/* 4. WRAP EVERYTHING IN A DIV WITH REF */}
             <div ref={containerRef}>
                 <TextToolbar shape={shape} onUpdate={onAttributesChange} />
 

@@ -39,7 +39,6 @@ export const RectangleTool: ToolLogic = {
             y: currentData.y,
             width: currentData.width,
             height: currentData.height,
-            // --- FIX HERE: Use the fill from the drawing data ---
             fill: currentData.fill,
             strokeColor: currentData.strokeColor,
             strokeWidth: currentData.strokeWidth,

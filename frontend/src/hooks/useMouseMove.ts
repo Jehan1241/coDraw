@@ -18,6 +18,23 @@ interface useMouseMoveProps {
     selectedIds: Set<string>;
 }
 
+const calculateBounds = (points: number[], x: number = 0, y: number = 0) => {
+    if (!points || points.length < 2) return { minX: x, maxX: x, minY: y, maxY: y };
+
+    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+
+    for (let i = 0; i < points.length; i += 2) {
+        const px = points[i] + x;
+        const py = points[i + 1] + y;
+        if (px < minX) minX = px;
+        if (px > maxX) maxX = px;
+        if (py < minY) minY = py;
+        if (py > maxY) maxY = py;
+    }
+
+    return { minX, maxX, minY, maxY };
+};
+
 export function useMouseMove({
     throttledSetAwareness,
     saveThumbnail,
@@ -89,6 +106,13 @@ export function useMouseMove({
 
             if (finalShape) {
                 if (!finalShape.id) finalShape.id = uniqueId;
+                if (finalShape.points && finalShape.points.length >= 2) {
+                    finalShape.bounds = calculateBounds(
+                        finalShape.points, 
+                        finalShape.x || 0, 
+                        finalShape.y || 0
+                    );
+                }
                 yjsShapesMap.set(finalShape.id, finalShape);
             }
 

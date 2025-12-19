@@ -100,7 +100,6 @@ export function useTextTool({ transformerRef, viewport, editingId, yjsShapesMap,
         if (editingId && yjsShapesMap) {
             const shape = yjsShapesMap.get(editingId);
             if (shape) {
-                // Merge existing shape with new attributes
                 yjsShapesMap.set(editingId, { ...shape, ...attrs });
             }
         }

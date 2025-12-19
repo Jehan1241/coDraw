@@ -1,11 +1,10 @@
-// src/components/BoardHeader.tsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Moon, Share2, Sun } from "lucide-react";
 import { useBoard } from "@/contexts/BoardContext";
-import { ShareModal } from "@/components/ui/ShareModal"; // Import the new modal
+import { ShareModal } from "@/components/ui/ShareModal";
 import { useTheme } from "./ui/theme-provider";
 
 export interface ActiveUser {
@@ -16,7 +15,6 @@ export interface ActiveUser {
 
 interface BoardHeaderProps {
   activeUsers: ActiveUser[];
-  // We don't need onShareClick prop anymore, we handle it internally
 }
 
 export function BoardHeader({ activeUsers }: BoardHeaderProps) {
@@ -25,7 +23,6 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
 
   const [isShareOpen, setIsShareOpen] = useState(false);
 
-  // Board Name Editing State
   const [isEditingBoardName, setIsEditingBoardName] = useState(false);
   const [tempBoardName, setTempBoardName] = useState(boardName);
   const { setTheme, theme } = useTheme()
@@ -42,10 +39,9 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
 
   return (
     <>
-      {/* --- LEFT ISLAND: Navigation & Title --- */}
+      {/* left island */}
       <div className="fixed top-4 left-4 z-50 flex items-center gap-2 bg-background text-foreground p-1.5 rounded-xl shadow-sm border">
 
-        {/* CoDraw Badge - Floating on the top edge */}
         <div className="absolute -top-2.5 left-3 bg-foreground text-background text-[9px] font-bold px-2.5 py-0.5 rounded-full shadow-sm z-50 pointer-events-none select-none tracking-widest uppercase">
           CoDraw
         </div>
@@ -80,10 +76,9 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
         )}
       </div>
 
-      {/* --- RIGHT ISLAND: Avatars & Share --- */}
+      {/* right island*/}
       <div className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-background p-1.5 rounded-xl shadow-sm border select-none">
 
-        {/* Avatar Stack */}
         <div className="flex -space-x-2 mr-1">
           {activeUsers.slice(0, 4).map((u) => (
             <div
@@ -102,8 +97,6 @@ export function BoardHeader({ activeUsers }: BoardHeaderProps) {
           )}
         </div>
 
-
-        {/* Theme Toggle (UI Only) */}
         <Button
           variant="ghost"
           size="icon"

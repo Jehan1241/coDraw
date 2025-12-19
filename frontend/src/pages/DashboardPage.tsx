@@ -29,13 +29,11 @@ export function DashboardPage() {
     navigate(`/board/${newId}`);
   };
 
-  // 1. Open the dialog by setting the ID
   const requestDelete = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Prevent clicking the card behind it
+    e.stopPropagation(); 
     setBoardToDelete(id);
   };
 
-  // 2. Actually delete when user clicks "Continue"
   const confirmDelete = () => {
     if (boardToDelete) {
       BoardStorage.remove(boardToDelete);
@@ -47,7 +45,6 @@ export function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground p-8 transition-colors duration-300">
       <div className="max-w-6xl mx-auto">
-        {/* HEADER */}
         <div className="flex justify-between items-end mb-8 pb-4 border-b border-border">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight">Dashboard</h1>
@@ -57,10 +54,8 @@ export function DashboardPage() {
           </div>
         </div>
 
-        {/* GRID LAYOUT */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           
-          {/* NEW BOARD CARD */}
           <button
             onClick={createNewBoard}
             className="group h-60 rounded-xl border-2 border-dashed border-muted-foreground/25 hover:border-primary/50 bg-card/50 hover:bg-accent/50 flex flex-col items-center justify-center gap-4 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
@@ -72,15 +67,12 @@ export function DashboardPage() {
               Create New Board
             </span>
           </button>
-
-          {/* EXISTING BOARDS */}
           {boards.map((board) => (
             <div
               key={board.id}
               onClick={() => navigate(`/board/${board.id}`)}
               className="group relative h-60 bg-card border border-border rounded-xl shadow-sm hover:shadow-lg hover:border-primary/50 cursor-pointer transition-all flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-300"
             >
-              {/* PREVIEW IMAGE */}
               <div className="flex-1 bg-muted/30 relative w-full overflow-hidden">
                 {board.thumbnail ? (
                   <img
@@ -95,11 +87,9 @@ export function DashboardPage() {
                   </div>
                 )}
                 
-                {/* Hover Gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
 
-              {/* DELETE BUTTON (Triggers Dialog) */}
               <Button
                 variant="destructive"
                 size="icon"
@@ -108,8 +98,6 @@ export function DashboardPage() {
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
-
-              {/* FOOTER INFO */}
               <div className="p-4 border-t border-border bg-card relative z-10">
                 <h3 className="font-semibold text-base truncate text-card-foreground pr-4">
                   {board.name || "Untitled Board"}
@@ -129,7 +117,6 @@ export function DashboardPage() {
           ))}
         </div>
 
-        {/* EMPTY STATE */}
         {boards.length === 0 && (
           <div className="flex flex-col items-center justify-center mt-20 text-muted-foreground gap-4 animate-in slide-in-from-bottom-4 duration-700">
             <div className="h-20 w-20 rounded-full bg-muted/50 flex items-center justify-center">
@@ -139,7 +126,6 @@ export function DashboardPage() {
           </div>
         )}
 
-        {/* DELETE CONFIRMATION DIALOG */}
         <AlertDialog open={!!boardToDelete} onOpenChange={(open) => !open && setBoardToDelete(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>

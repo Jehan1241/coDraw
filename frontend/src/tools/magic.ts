@@ -1,7 +1,7 @@
 import type { ToolLogic } from "./types";
 import type { SyncedShape } from "@/hooks/useWhiteboard";
 
-// 1. Supported Shapes
+// Supported Shapes
 type ShapeType = "circle" | "square" | "rectangle" | "oval" | "triangle";
 
 export const MagicTool: ToolLogic = {
@@ -20,7 +20,6 @@ export const MagicTool: ToolLogic = {
     }),
 
     onUp: (currentData, id) => {
-        // 1. Analyze the shape
         const classification = classifyShape(currentData.points);
 
         // Fallback: Return original drawing if not recognized
@@ -33,7 +32,7 @@ export const MagicTool: ToolLogic = {
                 strokeWidth: currentData.strokeWidth,
                 strokeType: currentData.strokeType,
                 isMagic: true,
-                tension: 0.5, // Freehand stays smooth
+                tension: 0.5, 
             };
         }
 
@@ -45,7 +44,6 @@ export const MagicTool: ToolLogic = {
         );
         console.log("Stats:", stats);
 
-        // 2. Calculate Geometry (Rotation & Dimensions)
         const bbox = getBoundingBox(currentData.points);
         let rotation = 0; // Radians
         let width = bbox.width;
@@ -56,10 +54,8 @@ export const MagicTool: ToolLogic = {
         const isAxisAligned = parseFloat(stats.axisScore) > 0.8;
         
         if (!isAxisAligned && shape !== "circle") {
-            // Calculate angle using PCA
             rotation = getShapeRotation(currentData.points, centerX, centerY);
             
-            // Un-rotate to measure true dimensions
             const unrotatedPoints = rotatePoints(
                 currentData.points, 
                 -rotation, 
@@ -71,7 +67,6 @@ export const MagicTool: ToolLogic = {
             height = unrotatedBBox.height;
         }
 
-        // 3. Generate New Points
         let newPoints: number[] = [];
 
         if (shape === "rectangle" || shape === "square") {
@@ -117,14 +112,10 @@ export const MagicTool: ToolLogic = {
     },
 };
 
-// =============================================================================
-//  SHAPE GENERATORS
-// =============================================================================
 
 function generateRectPoints(w: number, h: number) {
     const hw = w / 2;
     const hh = h / 2;
-    // Just the 4 corners. Konva will connect them with straight lines due to tension: 0
     return [
         -hw, -hh, // TL
          hw, -hh, // TR
@@ -135,7 +126,7 @@ function generateRectPoints(w: number, h: number) {
 
 function generateOvalPoints(w: number, h: number) {
     const points = [];
-    const steps = 64; // High resolution creates smoothness even with tension: 0
+    const steps = 64; 
     const rx = w / 2;
     const ry = h / 2;
     
@@ -149,9 +140,6 @@ function generateOvalPoints(w: number, h: number) {
     return points;
 }
 
-// =============================================================================
-//  GEOMETRY HELPERS
-// =============================================================================
 
 function transformPoints(points: number[], cx: number, cy: number, angle: number) {
     const res = [];
@@ -205,7 +193,6 @@ function getTriangleVertices(points: number[]) {
     const cx = bbox.centerX;
     const cy = bbox.centerY;
 
-    // 1. Tip 1
     let maxDist = -1;
     let idxA = 0;
     for (let i = 0; i < points.length; i += 2) {
@@ -214,7 +201,6 @@ function getTriangleVertices(points: number[]) {
     }
     const pA = { x: points[idxA], y: points[idxA+1] };
 
-    // 2. Tip 2
     maxDist = -1;
     let idxB = 0;
     for (let i = 0; i < points.length; i += 2) {
@@ -223,7 +209,6 @@ function getTriangleVertices(points: number[]) {
     }
     const pB = { x: points[idxB], y: points[idxB+1] };
 
-    // 3. Tip 3
     maxDist = -1;
     let idxC = 0;
     for (let i = 0; i < points.length; i += 2) {
@@ -235,10 +220,6 @@ function getTriangleVertices(points: number[]) {
 
     return [pA, pB, pC];
 }
-
-// =============================================================================
-//  SHAPE CLASSIFIER (Same as before)
-// =============================================================================
 
 interface ClassificationResult {
     shape: ShapeType;
@@ -259,7 +240,6 @@ export function classifyShape(points: number[]): ClassificationResult | null {
     const height = bbox.height;
     const diagonal = Math.hypot(width, height);
 
-    // --- 1. CLOSURE CHECK ---
     const startX = points[0], startY = points[1];
     const endX = points[points.length - 2], endY = points[points.length - 1];
     const gap = Math.hypot(startX - endX, startY - endY);
@@ -267,7 +247,6 @@ export function classifyShape(points: number[]): ClassificationResult | null {
 
     if (!isClosed) return null;
 
-    // --- 2. CALCULATE METRICS ---
     const variance = getRadiusVariance(points, bbox.centerX, bbox.centerY);
     const aspect = width / height;
     const polygonArea = getPolygonArea(points);
@@ -284,7 +263,6 @@ export function classifyShape(points: number[]): ClassificationResult | null {
         cornerScore: cornerScore.toFixed(2),
     };
 
-    // --- 3. CLASSIFICATION LOGIC ---
 
     // RULE 1: STRICT AXIS OVERRIDE
     if (axisScore > 0.8) {
@@ -315,9 +293,6 @@ export function classifyShape(points: number[]): ClassificationResult | null {
     }
 }
 
-// =============================================================================
-//  MATH HELPERS
-// =============================================================================
 
 function getCornerScore(points: number[], bbox: { minX: number, minY: number, maxX: number, maxY: number, width: number, height: number }) {
     const corners = [

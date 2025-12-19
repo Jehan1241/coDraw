@@ -1,4 +1,3 @@
-// src/contexts/BoardContext.tsx
 import React, { createContext, useContext, useEffect, useState } from "react";
 import * as Y from "yjs";
 import { HocuspocusProvider } from "@hocuspocus/provider";
@@ -31,13 +30,11 @@ export function BoardProvider({
   >("loading");
 
   useEffect(() => {
-    // 1. Setup Persistence (Browser)
     const localProvider = new IndexeddbPersistence(boardId, ydoc);
     const WS_URL = import.meta.env.VITE_WEBSOCKET_URL || "ws://localhost:1234";
 
     console.log("connecting to", WS_URL);
 
-    // 2. Setup Network (Hocuspocus)
     const networkProvider = new HocuspocusProvider({
       url: WS_URL,
       name: boardId,
@@ -45,28 +42,20 @@ export function BoardProvider({
     });
 
     setProvider(networkProvider);
-
-    // 3. Handle Name Syncing
     const metaMap = ydoc.getMap<string>("meta");
 
     const updateName = () => {
       const name = metaMap.get("name");
       if (name) {
         setBoardName(name);
-        // Also update our local dashboard list
         BoardStorage.update(boardId, { name });
       }
     };
 
-    // Listen for remote changes
     metaMap.observe(updateName);
 
-    // Initial load logic
     localProvider.on("synced", () => {
-      // If we loaded a name from local storage, use it.
-      // If the doc is empty, set default.
       if (!metaMap.has("name")) {
-        // Check if we have a name in our local dashboard index to migrate
         const existingLocalName = BoardStorage.getName(boardId);
         metaMap.set("name", existingLocalName || "Untitled Board");
       }

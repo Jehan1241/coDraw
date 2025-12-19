@@ -1,7 +1,5 @@
-// src/utils/freehand.ts
 import { getStroke } from "perfect-freehand";
 
-// 1. Helper to convert [x1, y1, x2, y2] -> [[x1, y1], [x2, y2]]
 export function toPairs(array: number[]) {
     const result = [];
     for (let i = 0; i < array.length - 1; i += 2) {
@@ -10,7 +8,6 @@ export function toPairs(array: number[]) {
     return result;
 }
 
-// 2. Helper to turn the stroke points into an SVG path string
 export function getSvgPathFromStroke(stroke: number[][]) {
     if (!stroke.length) return "";
 
@@ -26,8 +23,6 @@ export function getSvgPathFromStroke(stroke: number[][]) {
     d.push("Z");
     return d.join(" ");
 }
-
-// 3. Main function to get options based on stroke width
 export function getFreehandPath(points: number[], width: number) {
     const pairs = toPairs(points);
 

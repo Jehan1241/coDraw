@@ -1,4 +1,3 @@
-// src/App.tsx
 import { Routes, Route, Navigate } from "react-router-dom";
 import { BoardPage } from "./pages/BoardPage";
 import { Toaster } from "sonner";

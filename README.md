@@ -48,18 +48,4 @@
     ```bash
     npm install
     ```
-
-3.  **Start the Development Server**
-    ```bash
-    npm run dev
-    ```
-
-4.  **Start the Signaling Server (Optional for local collab)**
-    ```bash
-    # In a separate terminal
-    cd server
-    npm install
-    npm start
-    ```
-
 ---
